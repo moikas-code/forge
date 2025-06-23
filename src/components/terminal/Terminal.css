@@ -1,0 +1,132 @@
+/* Terminal Container Styles */
+.terminal-container {
+  @apply relative h-full w-full overflow-hidden rounded-lg;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 
+    0 0 0 0.5px rgba(0, 0, 0, 0.3),
+    0 2px 10px rgba(0, 0, 0, 0.2);
+  /* Background color will be set dynamically via inline styles */
+}
+
+/* Terminal Wrapper */
+.terminal-wrapper {
+  @apply h-full w-full;
+  padding: 12px;
+  pointer-events: auto;
+  outline: none;
+}
+
+/* Terminal Focus Glow Effect */
+.terminal-container:focus-within {
+  border-color: rgba(59, 130, 246, 0.5);
+  box-shadow: 
+    0 0 0 0.5px rgba(0, 0, 0, 0.3),
+    0 2px 10px rgba(0, 0, 0, 0.2),
+    0 0 0 3px rgba(59, 130, 246, 0.1),
+    0 0 20px rgba(59, 130, 246, 0.15);
+  transition: all 0.2s ease-out;
+}
+
+/* XTerm Overrides for macOS styling */
+.terminal-container .xterm {
+  height: 100%;
+  padding: 0;
+  outline: none;
+}
+
+.terminal-container .xterm-screen {
+  outline: none;
+}
+
+.terminal-container .xterm-viewport {
+  background-color: transparent;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+}
+
+.terminal-container .xterm-viewport::-webkit-scrollbar {
+  width: 14px;
+  background-color: transparent;
+}
+
+.terminal-container .xterm-viewport::-webkit-scrollbar-track {
+  background-color: transparent;
+  border-radius: 7px;
+}
+
+.terminal-container .xterm-viewport::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.2);
+  border-radius: 7px;
+  border: 3px solid transparent;
+  background-clip: padding-box;
+}
+
+.terminal-container .xterm-viewport::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 255, 255, 0.3);
+}
+
+.terminal-container .xterm-viewport::-webkit-scrollbar-thumb:active {
+  background-color: rgba(255, 255, 255, 0.4);
+}
+
+/* Terminal Selection */
+.terminal-container .xterm-selection {
+  mix-blend-mode: difference;
+}
+
+/* Cursor animation */
+.terminal-container .xterm-cursor-block {
+  animation: terminal-cursor-blink 1s step-end infinite;
+}
+
+@keyframes terminal-cursor-blink {
+  0%, 50% { opacity: 1; }
+  50.01%, 100% { opacity: 0; }
+}
+
+/* Link styling */
+.terminal-container .xterm-link {
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.terminal-container .xterm-link:hover {
+  text-decoration-color: #6871ff;
+  text-decoration-thickness: 2px;
+}
+
+/* Terminal text rendering improvements */
+.terminal-container .xterm-screen {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* Smooth transitions */
+.terminal-container {
+  transition: border-color 0.2s ease-out, box-shadow 0.2s ease-out;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .terminal-container {
+    border-color: rgba(255, 255, 255, 0.3);
+  }
+  
+  .terminal-container:focus-within {
+    border-color: rgba(59, 130, 246, 0.8);
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .terminal-container .xterm-cursor-block {
+    animation: none;
+    opacity: 1;
+  }
+  
+  .terminal-container,
+  .terminal-container:focus-within {
+    transition: none;
+  }
+}

@@ -5,9 +5,9 @@
   "identifier": "com.forge-moi.app",
   "build": {
     "beforeDevCommand": "bun run dev",
-    "devUrl": "http://localhost:1420",
+    "devUrl": "http://localhost:3000",
     "beforeBuildCommand": "bun run build",
-    "frontendDist": "../dist"
+    "frontendDist": "../out"
   },
   "app": {
     "windows": [
@@ -22,7 +22,7 @@
         "center": true,
         "minWidth": 1200,
         "minHeight": 700,
-        "titleBarStyle": "hiddenInset",
+        "titleBarStyle": "Overlay",
         "hiddenTitle": true,
         "acceptFirstMouse": true,
         "tabbingIdentifier": "forge-moi"
@@ -30,7 +30,7 @@
     ],
     "macOSPrivateApi": true,
     "security": {
-      "csp": "default-src 'self'; img-src 'self' asset: https: http: data: blob:; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self' ipc: http: https: ws: wss:; font-src 'self' data:;"
+      "csp": "default-src 'self'; img-src 'self' asset: https: http: data: blob:; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self' ipc: http: https: ws: wss:; font-src 'self' data:; frame-src 'self' http://localhost:* http://127.0.0.1:*; child-src 'self' http://localhost:* http://127.0.0.1:*;"
     }
   },
   "bundle": {
@@ -46,38 +46,12 @@
   },
   "plugins": {
     "shell": {
-      "open": true,
-      "all": false,
-      "execute": true,
-      "sidecar": true,
-      "scope": [
-        {
-          "name": "sh",
-          "cmd": "sh",
-          "args": ["-c", { "validator": ".*" }]
-        },
-        {
-          "name": "cmd",
-          "cmd": "cmd",
-          "args": ["/C", { "validator": ".*" }]
-        }
-      ]
+      "open": true
     },
     "fs": {
-      "all": true,
-      "readFile": true,
-      "writeFile": true,
-      "readDir": true,
-      "copyFile": true,
-      "createDir": true,
-      "removeDir": true,
-      "removeFile": true,
-      "renameFile": true,
-      "exists": true,
-      "scope": ["$APPDATA/*", "$APPDATA/**", "$HOME/*", "$HOME/**"]
+      "requireLiteralLeadingDot": false
     },
-    "store": {
-      "autoSave": true
-    }
+    "store": null,
+    "opener": {}
   }
 }

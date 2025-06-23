@@ -1,0 +1,338 @@
+@import "tailwindcss";
+
+/* Minimal styles for macOS native look */
+
+/* Ensure the app takes full height */
+#root {
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* Initialize dark mode */
+html.dark {
+  color-scheme: dark;
+}
+
+/* Smooth transitions */
+* {
+  transition-property: background-color, border-color, color, fill, stroke;
+  transition-duration: 150ms;
+}
+
+/* Prevent text selection on UI elements */
+.titlebar,
+.sidebar {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* macOS-style focus states */
+button:focus-visible {
+  outline: 2px solid hsl(211 100% 50%);
+  outline-offset: 2px;
+}
+
+/* Prevent button text selection */
+button {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+@theme {
+  /* macOS-inspired light theme */
+  --color-background: hsl(0 0% 100%);
+  --color-foreground: hsl(0 0% 20%);
+  --color-card: hsl(0 0% 100%);
+  --color-card-foreground: hsl(0 0% 20%);
+  --color-popover: hsl(0 0% 100%);
+  --color-popover-foreground: hsl(0 0% 20%);
+  --color-primary: hsl(211 100% 50%);
+  --color-primary-foreground: hsl(0 0% 100%);
+  --color-secondary: hsl(0 0% 96%);
+  --color-secondary-foreground: hsl(0 0% 20%);
+  --color-muted: hsl(0 0% 96%);
+  --color-muted-foreground: hsl(0 0% 45%);
+  --color-accent: hsl(211 100% 50%);
+  --color-accent-foreground: hsl(0 0% 100%);
+  --color-destructive: hsl(0 84% 60%);
+  --color-destructive-foreground: hsl(0 0% 100%);
+  --color-border: hsl(0 0% 90%);
+  --color-input: hsl(0 0% 90%);
+  --color-ring: hsl(211 100% 50%);
+  
+  /* macOS specific */
+  --color-sidebar-background: hsl(0 0% 97%);
+  --titlebar-height: 38px;
+  --traffic-light-width: 72px;
+}
+
+.dark {
+  /* macOS-inspired dark theme */
+  --color-background: hsl(0 0% 13%);
+  --color-foreground: hsl(0 0% 93%);
+  --color-card: hsl(0 0% 15%);
+  --color-card-foreground: hsl(0 0% 93%);
+  --color-popover: hsl(0 0% 15%);
+  --color-popover-foreground: hsl(0 0% 93%);
+  --color-primary: hsl(211 100% 50%);
+  --color-primary-foreground: hsl(0 0% 100%);
+  --color-secondary: hsl(0 0% 18%);
+  --color-secondary-foreground: hsl(0 0% 93%);
+  --color-muted: hsl(0 0% 18%);
+  --color-muted-foreground: hsl(0 0% 60%);
+  --color-accent: hsl(211 100% 50%);
+  --color-accent-foreground: hsl(0 0% 100%);
+  --color-destructive: hsl(0 62% 30%);
+  --color-destructive-foreground: hsl(0 0% 100%);
+  --color-border: hsl(0 0% 20%);
+  --color-input: hsl(0 0% 20%);
+  --color-ring: hsl(211 100% 50%);
+  
+  /* macOS specific */
+  --color-sidebar-background: hsl(0 0% 11%);
+}
+
+/* System font stack for macOS feel */
+* {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", Arial, sans-serif;
+}
+
+/* Smooth animations throughout */
+*, *::before, *::after {
+  transition-timing-function: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+/* Base styles */
+* {
+  border-color: var(--color-border);
+}
+
+body {
+  background-color: var(--color-background);
+  color: var(--color-foreground);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* macOS-style window draggable area */
+.titlebar {
+  -webkit-app-region: drag;
+  height: var(--titlebar-height);
+  display: flex;
+  align-items: center;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+.titlebar-button {
+  -webkit-app-region: no-drag;
+}
+
+/* macOS-style sidebar */
+.sidebar {
+  background-color: var(--color-sidebar-background);
+  border-right: 1px solid color-mix(in srgb, var(--color-border) 50%, transparent);
+  backdrop-filter: blur(50px);
+  -webkit-backdrop-filter: blur(50px);
+}
+
+/* Vibrancy effect for panels */
+.vibrancy {
+  backdrop-filter: blur(50px) saturate(180%);
+  -webkit-backdrop-filter: blur(50px) saturate(180%);
+  background-color: color-mix(in srgb, var(--color-background) 70%, transparent);
+}
+
+/* macOS-style buttons */
+.btn-primary {
+  background-color: var(--color-primary);
+  color: var(--color-primary-foreground);
+  border-radius: 0.375rem;
+  padding: 0.375rem 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: all 75ms;
+}
+
+.btn-primary:hover {
+  opacity: 0.9;
+}
+
+.btn-primary:active {
+  transform: scale(0.98);
+}
+
+.btn-secondary {
+  background-color: var(--color-secondary);
+  color: var(--color-secondary-foreground);
+  border-radius: 0.375rem;
+  padding: 0.375rem 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: all 75ms;
+}
+
+.btn-secondary:hover {
+  background-color: color-mix(in srgb, var(--color-secondary) 80%, transparent);
+}
+
+.btn-secondary:active {
+  transform: scale(0.98);
+}
+
+/* macOS-style focus rings */
+.focus-ring:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--color-primary), 0 0 0 3px var(--color-background);
+}
+
+/* Subtle shadows like macOS */
+.shadow-subtle {
+  box-shadow: 
+    0 0 0 0.5px rgba(0, 0, 0, 0.05),
+    0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+.shadow-panel {
+  box-shadow: 
+    0 0 0 0.5px rgba(0, 0, 0, 0.1),
+    0 2px 4px 0 rgba(0, 0, 0, 0.05),
+    0 4px 12px 0 rgba(0, 0, 0, 0.05);
+}
+
+/* macOS-style scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: color-mix(in srgb, var(--color-border) 50%, transparent);
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: color-mix(in srgb, var(--color-border) 70%, transparent);
+}
+
+/* Hide scrollbar until hover */
+.scrollbar-auto {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.scrollbar-auto::-webkit-scrollbar {
+  display: none;
+}
+
+.scrollbar-auto:hover::-webkit-scrollbar {
+  display: block;
+}
+
+/* Responsive breakpoints for layout */
+@media (max-width: 768px) {
+  /* Hide sidebar on mobile by default */
+  .sidebar {
+    position: fixed;
+    left: 0;
+    top: var(--titlebar-height);
+    bottom: 0;
+    z-index: 40;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+  }
+  
+  .sidebar.open {
+    transform: translateX(0);
+  }
+  
+  /* Adjust main content to full width on mobile */
+  .main-content {
+    margin-left: 0;
+  }
+  
+  /* Stack buttons vertically on mobile */
+  .btn-group {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  /* Adjust panel sizes for mobile */
+  .bottom-panel {
+    min-height: 200px;
+    max-height: 50vh;
+  }
+}
+
+@media (max-width: 640px) {
+  /* Smaller titlebar on mobile */
+  :root {
+    --titlebar-height: 32px;
+  }
+  
+  /* Reduce padding on mobile */
+  .p-4 {
+    padding: 0.75rem;
+  }
+  
+  .p-8 {
+    padding: 1rem;
+  }
+  
+  /* Smaller text on mobile */
+  .text-4xl {
+    font-size: 2rem;
+  }
+  
+  .text-lg {
+    font-size: 1rem;
+  }
+}
+
+/* Tablet adjustments */
+@media (min-width: 768px) and (max-width: 1024px) {
+  /* Narrower sidebar on tablets */
+  .sidebar {
+    width: 200px;
+  }
+  
+  /* Adjust panel default sizes */
+  .panel-sidebar {
+    flex: 0 0 200px;
+  }
+}
+
+/* Desktop enhancements */
+@media (min-width: 1024px) {
+  /* Enable hover effects only on desktop */
+  .hover-effects:hover {
+    background-color: var(--color-secondary);
+  }
+  
+  /* Larger hit targets on desktop */
+  .resize-handle {
+    width: 4px;
+    margin: 0 -2px;
+  }
+}
+
+/* High DPI screen adjustments */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  /* Thinner borders on retina displays */
+  * {
+    border-width: 0.5px;
+  }
+  
+  /* Crisper shadows */
+  .shadow-subtle {
+    box-shadow: 
+      0 0 0 0.5px rgba(0, 0, 0, 0.05),
+      0 0.5px 1px 0 rgba(0, 0, 0, 0.05);
+  }
+}

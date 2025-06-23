@@ -15,43 +15,57 @@
   - [x] Utils: zod
 - [x] Create folder structure
 - [x] Configure tauri.conf.json with security settings
-- [ ] Test initial build: `bun run tauri dev`
-- [ ] Create README.md with project description
+- [x] Configure macOS native window with hiddenInset titlebar
+- [x] Create minimalist macOS UI/UX with proper color scheme
+- [x] Set up system font stack and smooth animations
+- [x] Test initial build: `bun run tauri dev`
+- [x] Create README.md with project description
 
-## 📋 Day 2-3: Layout System
-- [ ] Create AppLayout.tsx main layout component
-- [ ] Implement split-pane structure (sidebar, main area, bottom panel)
-- [ ] Create TabManager.tsx for tab handling
-- [ ] Build Sidebar.tsx with mode toggle (Developer/Studio)
-- [ ] Create Zustand store for layout state (layoutStore.ts)
-- [ ] Implement layout persistence with localStorage
-- [ ] Add dark theme CSS variables (extend existing theme)
-- [ ] Create responsive breakpoints
-- [ ] Test layout resizing and tab functionality
+## ✅ Day 2-3: Layout System (COMPLETED)
+- [x] Create AppLayout.tsx main layout component
+- [x] Implement split-pane structure (sidebar, main area, bottom panel)
+- [x] Create TabManager.tsx for tab handling
+- [x] Build Sidebar.tsx with mode toggle (Developer/Studio)
+- [x] Create Zustand store for layout state (layoutStore.ts)
+- [x] Implement layout persistence with localStorage
+- [x] Add dark theme CSS variables (extend existing theme)
+- [x] Create responsive breakpoints
+- [x] Test layout resizing and tab functionality
+- [x] Add comprehensive error boundaries
+- [x] Implement accessibility features (ARIA, keyboard navigation)
+- [x] Create custom hooks for media queries and shortcuts
+- [x] Add theme toggle functionality
 
-## 💻 Day 4-5: Terminal Implementation
-- [ ] Create Terminal.tsx component with xterm.js
-- [ ] Integrate xterm.js with fit addon
-- [ ] Style terminal with dark theme
-- [ ] Create terminal toolbar (clear, copy, paste buttons)
-- [ ] Create Rust file: src-tauri/src/terminal.rs
-- [ ] Implement shell process spawning in Rust
-- [ ] Add IPC communication for terminal I/O
-- [ ] Create multiple terminal session support
-- [ ] Add custom commands (edit, preview)
-- [ ] Test terminal with basic commands
+## ✅ Day 4-5: Terminal Implementation (COMPLETED)
+- [x] Create Terminal.tsx component with xterm.js
+- [x] Integrate xterm.js with fit addon
+- [x] Style terminal with dark theme
+- [x] Create terminal toolbar (clear, copy, paste buttons)
+- [x] Create Rust file: src-tauri/src/terminal.rs
+- [x] Implement shell process spawning in Rust
+- [x] Add IPC communication for terminal I/O
+- [x] Create multiple terminal session support
+- [x] Add custom commands (edit, preview)
+- [x] Test terminal with basic commands
 
-## 📝 Day 6-8: Code Editor
-- [ ] Create Editor.tsx with Monaco integration
-- [ ] Configure Monaco for Vite (no webpack plugin needed)
-- [ ] Set up syntax highlighting for 10+ languages
-- [ ] Create editor toolbar (save, format, settings)
-- [ ] Create Rust file: src-tauri/src/editor.rs
-- [ ] Implement file read/write operations in Rust
-- [ ] Add file watcher for external changes
-- [ ] Create multi-tab file editing
-- [ ] Implement find/replace functionality
-- [ ] Add dirty state tracking and unsaved changes prompt
+## ✅ Day 6-8: Code Editor (COMPLETED)
+- [x] Create CodeEditor.tsx with Monaco integration
+- [x] Configure Monaco for Vite environment with custom themes
+- [x] Set up syntax highlighting for 30+ languages (comprehensive language support)
+- [x] Create comprehensive editor toolbar (save, format, settings, find/replace)
+- [x] Create Rust file: src-tauri/src/editor.rs with full file operations
+- [x] Implement file read/write operations in Rust with error handling
+- [x] Add file watcher for external changes with event system
+- [x] Create multi-tab file editing with state management
+- [x] Implement find/replace functionality with regex support
+- [x] Add dirty state tracking and unsaved changes prompt
+- [x] Create EditorStore for state management
+- [x] Implement comprehensive file operations (create, delete, rename, copy)
+- [x] Add backup and restore functionality
+- [x] Create editor session management
+- [x] Add Monaco themes (forge-dark, forge-light) matching app design
+- [x] Implement advanced editor features (minimap, word wrap, line numbers)
+- [x] Add keyboard shortcuts and accessibility features
 
 ## 📁 Day 9-10: File Explorer
 - [ ] Create FileExplorer.tsx component
@@ -65,7 +79,8 @@
 - [ ] Connect file clicks to editor
 - [ ] Test file operations
 
-## 🌐 Day 11-12: Browser Preview
+## 🌐 Day 11-12: Browser
+- [ ] Allow user, code preveiws and agent to visit websites
 - [ ] Create Browser.tsx component
 - [ ] Add navigation toolbar (back, forward, refresh, URL bar)
 - [ ] Implement Tauri WebView integration
@@ -221,7 +236,7 @@
 6. Security must be ongoing throughout
 
 ## 📚 Resources
-- Tauri Docs: https://tauri.app/v1/guides/
+- Tauri Docs: https://v2.tauri.app
 - shadcn/ui: https://ui.shadcn.com/
 - Langchain Docs: https://js.langchain.com/
 - fal.ai Docs: https://docs.fal.ai/
@@ -229,6 +244,85 @@
 
 ## 🐛 Known Issues
 - None yet
+
+## 🚀 Layout System Enhancements
+
+### Layout Improvements
+1. **Index Files & Organization**
+   - [ ] Create layout components index file for cleaner imports
+   - [ ] Organize component exports for better developer experience
+
+2. **Advanced Tab Management**
+   - [ ] Add tab drag-and-drop reordering functionality
+   - [ ] Implement tab duplication feature
+   - [ ] Add tab grouping and organizing
+   - [ ] Create tab preview on hover
+   - [ ] Add tab context menu (close others, close to right)
+
+3. **Layout Presets & Customization**
+   - [ ] Implement layout presets functionality (coding, debugging, design)
+   - [ ] Add custom layout themes beyond light/dark
+   - [ ] Create layout export/import functionality
+   - [ ] Add layout animation preferences
+   - [ ] Implement custom panel configurations
+
+4. **Enhanced Responsiveness**
+   - [ ] Add tablet-specific layout optimizations
+   - [ ] Implement swipe gestures for mobile navigation
+   - [ ] Add collapsible panel headers for small screens
+   - [ ] Create adaptive toolbar sizing
+
+5. **Performance & Polish**
+   - [ ] Add layout change animations
+   - [ ] Implement virtualized rendering for large lists
+   - [ ] Add layout performance monitoring
+   - [ ] Create layout state compression for storage
+
+6. **Developer Experience**
+   - [ ] Add layout debugging tools
+   - [ ] Create layout component documentation
+   - [ ] Add layout performance metrics
+   - [ ] Implement layout A/B testing framework
+
+## 🚀 Terminal Improvements & Future Enhancements
+
+### Terminal Enhancements
+1. **Toolbar Integration**
+   - Wire up TerminalToolbar buttons with actual terminal actions
+   - Add keyboard shortcut handlers for toolbar actions
+   - Implement clipboard API for secure copy/paste operations
+
+2. **Performance Optimizations**
+   - Implement virtual scrolling for terminal output
+   - Add output throttling for high-volume commands
+   - Optimize memory usage for long-running sessions
+
+3. **Advanced Features**
+   - Add terminal profiles (bash, zsh, fish, powershell)
+   - Implement split terminal panes
+   - Add terminal search functionality (Ctrl+F)
+   - Create terminal themes selector
+   - Add command history navigation
+   - Implement auto-completion for custom commands
+
+4. **Developer Experience**
+   - Add terminal command palette
+   - Create snippets for common commands
+   - Implement SSH connection support
+   - Add terminal session persistence across app restarts
+   - Create terminal replay/recording feature
+
+5. **AI Integration**
+   - Add AI-powered command suggestions
+   - Implement natural language to command translation
+   - Create intelligent error explanation and fixes
+   - Add command safety checker
+
+6. **Testing & Quality**
+   - Add comprehensive E2E tests for terminal
+   - Create performance benchmarks
+   - Add telemetry for terminal usage analytics
+   - Implement crash reporting for terminal processes
 
 ## 💡 Ideas & Notes
 - Consider using Tanstack Table for data views
