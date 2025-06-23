@@ -7,7 +7,7 @@ export type Theme = 'light' | 'dark';
 export interface Tab {
   id: string;
   title: string;
-  type: 'terminal' | 'editor' | 'browser' | 'explorer' | 'image' | 'video' | '3d';
+  type: 'editor' | 'browser' | 'explorer' | 'image' | 'video' | '3d';
   content?: string;
   path?: string;
   isActive: boolean;

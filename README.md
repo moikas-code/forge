@@ -1,14 +1,23 @@
 # Forge MOI - AI-Powered Multi-Modal Development Studio
 
-A powerful desktop application combining development tools (terminal, code editor, browser preview) with AI-powered creative features (image generation, video creation, 3D modeling) built with Tauri, React, and Langchain.
+A powerful desktop application combining development tools with AI-powered creative features, built with Tauri, React, and Langchain.
 
 ## 🚀 Features
+
+### Core Tools (Available in Both Modes)
+- **Web Browser**: Full-featured browser with bookmarks, history, and developer tools
+  - Navigate any website with smart URL/search detection
+  - Bookmark management with folders
+  - Browsing history tracking
+  - DevTools integration
+  - Multiple viewport presets (mobile, tablet, desktop)
+  - Screenshot and screen recording
+  - Console output capture
 
 ### Developer Mode
 - **Integrated Terminal**: Full-featured terminal with xterm.js
 - **Code Editor**: Monaco-based editor with syntax highlighting
 - **File Explorer**: Tree-view file browser with drag-and-drop
-- **Browser Preview**: Live preview for web development
 - **AI Code Assistant**: Powered by Langchain for intelligent code help
 
 ### Studio Mode  

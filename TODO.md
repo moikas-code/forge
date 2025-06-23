@@ -79,18 +79,19 @@
 - [x] Connect file clicks to editor
 - [x] Test file operations
 
-## 🌐 Day 11-12: Browser
-- [ ] Allow user to view the internet, code preveiws and agent to visit websites
+## ✅ Day 11-12: Browser (COMPLETED)
+- [x] Allow user to view the internet, code preveiws and agent to visit websites
 - [x] Create Browser.tsx component
-- [ ] Add navigation toolbar (back, forward, refresh, URL bar)
-- [ ] Implement Tauri WebView integration
+- [x] Add navigation toolbar (back, forward, refresh, URL bar)
+- [x] Implement Tauri WebView integration
 - [x] Configure CSP for webview in tauri.conf.json (already done)
-- [ ] Add DevTools toggle button
-- [ ] Create loading states and error handling
-- [ ] Implement hot reload for local development
-- [ ] Add viewport size presets (mobile, tablet, desktop)
-- [ ] Test with local development server
-- [ ] Add console output capture
+- [x] Add DevTools toggle button
+- [x] Create loading states and error handling
+- [x] Implement hot reload for local development
+- [x] Add viewport size presets (mobile, tablet, desktop)
+- [x] Test with local development server
+- [x] Add console output capture
+- [x] screen capture and screen record
 
 ## 🤖 Day 13-15: MCP Server Setup with Langchain
 - [ ] Create mcp-server/ directory

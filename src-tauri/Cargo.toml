@@ -30,4 +30,7 @@ portable-pty = "0.8"
 bytes = "1"
 uuid = { version = "1", features = ["v4", "serde"] }
 notify = "6.1"
+base64 = "0.22"
+dirs = "5.0"
+url = "2.5"
 

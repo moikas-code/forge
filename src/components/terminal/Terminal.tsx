@@ -314,7 +314,7 @@ export function Terminal({
             // Send paste data to backend terminal
             const bytes = new TextEncoder().encode(text_to_paste);
             await invoke('write_to_terminal', {
-              terminalId: current_terminal_id,
+              terminal_id: current_terminal_id,
               data: Array.from(bytes)
             });
             show_feedback('Pasted from clipboard', 'success');
@@ -353,7 +353,21 @@ export function Terminal({
         
         // Focus the terminal after it's opened
         setTimeout(() => {
+          console.log('[Terminal] Attempting to focus terminal');
           terminal.focus();
+          
+          // Additional focus attempt on the underlying textarea
+          const textarea = terminal.textarea;
+          if (textarea) {
+            textarea.focus();
+            console.log('[Terminal] Focused terminal textarea element');
+          } else {
+            console.warn('[Terminal] No textarea element found');
+          }
+          
+          // Debug: Check if terminal is actually focused
+          const is_focused = terminal.hasSelection() || document.activeElement === textarea;
+          console.log('[Terminal] Is terminal focused?', is_focused);
         }, 100);
       }
       
@@ -472,25 +486,38 @@ export function Terminal({
         
         // Set up input handler
         term.onData(async (data: string) => {
-          if (response.terminal_id) {
+          console.log('[Terminal] onData triggered with:', {
+            data: data,
+            data_length: data.length,
+            data_char_codes: data.split('').map(c => c.charCodeAt(0)),
+            current_terminal_id: current_terminal_id,
+            terminal_is_open: term.element !== null
+          });
+          
+          if (current_terminal_id) {
             try {
               const bytes = new TextEncoder().encode(data);
+              console.log('[Terminal] Sending bytes to backend:', Array.from(bytes));
+              
               await invoke('write_to_terminal', {
-                terminalId: response.terminal_id,
+                terminal_id: current_terminal_id,
                 data: Array.from(bytes)
               });
+              console.log('[Terminal] Successfully sent to terminal backend');
             } catch (error) {
-              console.error('Failed to write to terminal:', error);
+              console.error('[Terminal] Failed to write to terminal:', error);
             }
+          } else {
+            console.error('[Terminal] No terminal ID available for input');
           }
         });
         
         // Handle resize
         term.onResize(async ({ cols, rows }: { cols: number; rows: number }) => {
-          if (response.terminal_id) {
+          if (current_terminal_id) {
             try {
               await invoke('resize_terminal', {
-                terminalId: response.terminal_id,
+                terminal_id: current_terminal_id,
                 size: { rows, cols }
               });
             } catch (error) {
@@ -543,7 +570,7 @@ export function Terminal({
         
         // Close backend terminal
         if (terminal_id) {
-          invoke('close_terminal', { terminalId: terminal_id }).catch(console.error);
+          invoke('close_terminal', { terminal_id: terminal_id }).catch(console.error);
         }
         
         if (web_links_addon) {
@@ -581,6 +608,13 @@ export function Terminal({
       tabIndex={0}
       onFocus={() => {
         // When container gains focus, focus the terminal
+        if (xterm_ref.current) {
+          xterm_ref.current.focus();
+        }
+      }}
+      onClick={() => {
+        // Also focus on click anywhere in the container
+        console.log('[Terminal] Container clicked, focusing terminal');
         if (xterm_ref.current) {
           xterm_ref.current.focus();
         }

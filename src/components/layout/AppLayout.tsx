@@ -6,11 +6,11 @@ import { Sidebar } from './Sidebar';
 import { TabManager } from './TabManager';
 import { useLayoutStore } from '@/stores/layoutStore';
 import { Button } from '@/components/ui/button';
-import { ChevronUp, Menu, X } from 'lucide-react';
+import { ChevronUp, Menu, X, Terminal } from 'lucide-react';
 import { useResponsive } from '@/hooks/useMediaQuery';
 import { EnhancedTerminal } from '@/components/terminal';
 import { CodeEditor } from '@/components/editor';
-import { BrowserPreview } from '@/components/browser';
+import { BrowserAdvanced } from '@/components/browser';
 import { FileExplorer } from '@/components/explorer';
 import { TabErrorBoundary } from './TabErrorBoundary';
 import { ComponentErrorBoundary } from './ComponentErrorBoundary';
@@ -152,11 +152,7 @@ export function AppLayout() {
                          id={`tabpanel-${activeTab.id}`}
                          aria-labelledby={`tabdesc-${activeTab.id}`}>
                       <TabErrorBoundary tabName={activeTab.title}>
-                        {activeTab.type === 'terminal' ? (
-                          <ComponentErrorBoundary componentName="Terminal">
-                            <EnhancedTerminal className="h-full" />
-                          </ComponentErrorBoundary>
-                        ) : activeTab.type === 'editor' ? (
+                        {activeTab.type === 'editor' ? (
                           <ComponentErrorBoundary componentName="Code Editor">
                             <CodeEditor 
                               tabId={activeTab.id}
@@ -166,8 +162,8 @@ export function AppLayout() {
                             />
                           </ComponentErrorBoundary>
                         ) : activeTab.type === 'browser' ? (
-                          <ComponentErrorBoundary componentName="Browser Preview">
-                            <BrowserPreview 
+                          <ComponentErrorBoundary componentName="Browser">
+                            <BrowserAdvanced 
                               path={activeTab.path} 
                               className="h-full" 
                             />
@@ -219,26 +215,30 @@ export function AppLayout() {
                 >
                   <div className="h-full bg-background border-t border-border/50"
                        role="region"
-                       aria-label="Output panel">
+                       aria-label="Terminal panel">
                     <div className="flex items-center justify-between px-4 py-2 border-b border-border/50">
-                      <h2 className="text-sm font-medium">Output</h2>
+                      <div className="flex items-center gap-2">
+                        <Terminal size={14} className="text-muted-foreground" />
+                        <h2 className="text-sm font-medium">Terminal</h2>
+                      </div>
                       <Button
                         variant="ghost"
                         size="icon"
                         onClick={toggleBottomPanel}
                         className="h-6 w-6 hover:bg-secondary/50"
-                        aria-label="Collapse output panel"
-                        title="Collapse output panel (Cmd/Ctrl+J)"
+                        aria-label="Collapse terminal panel"
+                        title="Collapse terminal panel (Cmd/Ctrl+J)"
                       >
                         <ChevronUp size={14} aria-hidden="true" />
                       </Button>
                     </div>
                     <div className="h-[calc(100%-40px)]">
-                      <ComponentErrorBoundary componentName="Output Terminal" fallbackHeight="100%">
+                      <ComponentErrorBoundary componentName="Terminal" fallbackHeight="100%">
                         <EnhancedTerminal 
                           className="h-full" 
                           show_performance_indicator={process.env.NODE_ENV === 'development'}
                           performance_debug={process.env.NODE_ENV === 'development'}
+                          autoFocus={!isBottomPanelCollapsed}
                         />
                       </ComponentErrorBoundary>
                     </div>
@@ -258,11 +258,12 @@ export function AppLayout() {
             size="sm"
             onClick={toggleBottomPanel}
             className="shadow-panel"
-            aria-label="Expand output panel"
-            title="Expand output panel (Cmd/Ctrl+J)"
+            aria-label="Expand terminal panel"
+            title="Expand terminal panel (Cmd/Ctrl+J)"
           >
             <ChevronUp size={14} className="rotate-180 mr-1" aria-hidden="true" />
-            Show Output
+            <Terminal size={14} className="mr-1" aria-hidden="true" />
+            Terminal
           </Button>
         </div>
       )}

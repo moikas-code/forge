@@ -20,14 +20,14 @@ interface BrowserPreviewProps {
 }
 
 export function BrowserPreview({ path, url: initialUrl, className }: BrowserPreviewProps) {
-  const [url, setUrl] = useState(initialUrl || 'http://localhost:3000');
-  const [inputUrl, setInputUrl] = useState(initialUrl || 'http://localhost:3000');
+  const [url, setUrl] = useState(initialUrl || 'https://www.google.com');
+  const [inputUrl, setInputUrl] = useState(initialUrl || 'https://www.google.com');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [canGoBack, setCanGoBack] = useState(false);
   const [canGoForward, setCanGoForward] = useState(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
-  const [history, setHistory] = useState<string[]>([initialUrl || 'http://localhost:3000']);
+  const [history, setHistory] = useState<string[]>([initialUrl || 'https://www.google.com']);
   const [historyIndex, setHistoryIndex] = useState(0);
 
   useEffect(() => {
@@ -38,19 +38,18 @@ export function BrowserPreview({ path, url: initialUrl, className }: BrowserPrev
     }
   }, [path]);
 
-  const isValidLocalUrl = (urlString: string): boolean => {
+  const isValidUrl = (urlString: string): boolean => {
     try {
-      const urlObj = new URL(urlString);
-      // Only allow localhost URLs for security
-      return urlObj.hostname === 'localhost' || urlObj.hostname === '127.0.0.1';
+      new URL(urlString);
+      return true;
     } catch {
       return false;
     }
   };
 
   const navigateToUrl = (newUrl: string) => {
-    if (!isValidLocalUrl(newUrl)) {
-      setError('Only localhost URLs are allowed for security reasons');
+    if (!isValidUrl(newUrl)) {
+      setError('Invalid URL');
       return;
     }
 
@@ -117,7 +116,7 @@ export function BrowserPreview({ path, url: initialUrl, className }: BrowserPrev
   };
 
   const handleHome = () => {
-    navigateToUrl('http://localhost:3000');
+    navigateToUrl('https://www.google.com');
   };
 
   const handleOpenExternal = async () => {
@@ -200,7 +199,7 @@ export function BrowserPreview({ path, url: initialUrl, className }: BrowserPrev
             className="flex-1 px-3 py-1.5 text-sm bg-secondary/50 border border-border/50 rounded-md 
                      focus:outline-none focus:ring-1 focus:ring-primary/50 focus:border-primary/50
                      font-mono text-xs"
-            placeholder="Enter localhost URL..."
+            placeholder="Enter URL..."
           />
         </form>
 
@@ -251,7 +250,7 @@ export function BrowserPreview({ path, url: initialUrl, className }: BrowserPrev
               className="w-full h-full border-0"
               onLoad={handleIframeLoad}
               onError={handleIframeError}
-              sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
+              sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals allow-downloads allow-presentation allow-top-navigation-by-user-activation"
               title="Browser Preview"
             />
           </>

@@ -16,12 +16,14 @@ interface EnhancedTerminalProps {
   className?: string;
   show_performance_indicator?: boolean;
   performance_debug?: boolean;
+  autoFocus?: boolean;
 }
 
 export function EnhancedTerminal({ 
   className,
   show_performance_indicator = false,
-  performance_debug = false 
+  performance_debug = false,
+  autoFocus = false 
 }: EnhancedTerminalProps) {
   const terminal_ref = useRef<HTMLDivElement>(null);
   const container_ref = useRef<HTMLDivElement>(null);
@@ -74,7 +76,7 @@ export function EnhancedTerminal({
     // Dynamic import to avoid SSR issues
     const init_terminal = async () => {
       const { Terminal: XTerm } = await import('xterm');
-      const { FitAddon } = await import('xterm-addon-fit');
+      const { FitAddon } = await import('@xterm/addon-fit');
       const { WebLinksAddon } = await import('@xterm/addon-web-links');
       await import('xterm/css/xterm.css');
 
@@ -173,6 +175,20 @@ export function EnhancedTerminal({
     // Open terminal in the DOM element
     if (terminal_ref.current) {
       terminal.open(terminal_ref.current);
+      // Focus the terminal after opening
+      setTimeout(() => {
+        console.log('[EnhancedTerminal] Attempting to focus terminal');
+        terminal.focus();
+        
+        // Additional focus attempt on the underlying textarea
+        const textarea = terminal.textarea;
+        if (textarea) {
+          textarea.focus();
+          console.log('[EnhancedTerminal] Focused terminal textarea element');
+        } else {
+          console.warn('[EnhancedTerminal] No textarea element found');
+        }
+      }, 100);
     }
     
     // Initial fit with safety checks
@@ -195,6 +211,17 @@ export function EnhancedTerminal({
         }, 100);
       }
     }, 0);
+    
+    // Add click handler to focus terminal
+    const handle_click = () => {
+      if (xterm_ref.current) {
+        xterm_ref.current.focus();
+      }
+    };
+    
+    if (terminal_ref.current) {
+      terminal_ref.current.addEventListener('click', handle_click);
+    }
     
     // Create backend terminal
     create_backend_terminal(terminal, fit_addon);
@@ -318,6 +345,13 @@ export function EnhancedTerminal({
         
         // Set up input handler with command interception
         term.onData(async (data: string) => {
+          console.log('[EnhancedTerminal] onData triggered with:', {
+            data: data,
+            data_length: data.length,
+            data_char_codes: data.split('').map(c => c.charCodeAt(0)),
+            terminal_id: response.terminal_id,
+            terminal_is_open: term.element !== null
+          });
           if (response.terminal_id) {
             // Track typed characters for command detection
             for (const char of data) {
@@ -358,9 +392,10 @@ export function EnhancedTerminal({
             
             // Send data to backend terminal
             try {
+              console.log('Sending to backend:', data);
               const bytes = new TextEncoder().encode(data);
               await invoke('write_to_terminal', {
-                terminalId: response.terminal_id,
+                terminal_id: response.terminal_id,
                 data: Array.from(bytes)
               });
             } catch (error) {
@@ -374,7 +409,7 @@ export function EnhancedTerminal({
           if (response.terminal_id) {
             try {
               await invoke('resize_terminal', {
-                terminalId: response.terminal_id,
+                terminal_id: response.terminal_id,
                 size: { rows, cols }
               });
             } catch (error) {
@@ -402,6 +437,10 @@ export function EnhancedTerminal({
       return () => {
         window.removeEventListener('resize', handle_resize);
         
+        if (terminal_ref.current) {
+          terminal_ref.current.removeEventListener('click', handle_click);
+        }
+        
         if (resize_observer_ref.current) {
           resize_observer_ref.current.disconnect();
           resize_observer_ref.current = null;
@@ -426,7 +465,7 @@ export function EnhancedTerminal({
         
         // Close backend terminal
         if (terminal_id) {
-          invoke('close_terminal', { terminalId: terminal_id }).catch(console.error);
+          invoke('close_terminal', { terminal_id: terminal_id }).catch(console.error);
         }
         
         if (web_links_addon) {
@@ -452,16 +491,50 @@ export function EnhancedTerminal({
       cleanup.then(fn => fn && fn());
     };
   }, []); // Empty dependency array - terminal should only initialize once
+  
+  // Auto-focus effect
+  useEffect(() => {
+    if (autoFocus && xterm_ref.current) {
+      // Small delay to ensure terminal is fully rendered
+      const timeout = setTimeout(() => {
+        if (xterm_ref.current) {
+          xterm_ref.current.focus();
+        }
+      }, 100);
+      
+      return () => clearTimeout(timeout);
+    }
+  }, [autoFocus]);
 
   return (
     <>
       <div 
         ref={container_ref}
         className={`terminal-container ${className || ''}`}
+        onClick={() => {
+          // Ensure terminal gets focus when clicked
+          console.log('[EnhancedTerminal] Container clicked, focusing terminal');
+          if (xterm_ref.current) {
+            xterm_ref.current.focus();
+          }
+        }}
+        tabIndex={0}
+        onFocus={() => {
+          // When container gains focus, focus the terminal
+          if (xterm_ref.current) {
+            xterm_ref.current.focus();
+          }
+        }}
       >
         <div 
           ref={terminal_ref} 
           className="terminal-wrapper"
+          onClick={() => {
+            // Also focus on click of the terminal wrapper
+            if (xterm_ref.current) {
+              xterm_ref.current.focus();
+            }
+          }}
         />
         
         {/* Performance Indicator */}

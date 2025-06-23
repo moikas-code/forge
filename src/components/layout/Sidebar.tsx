@@ -6,7 +6,6 @@ import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { useLayoutStore, AppMode } from '@/stores/layoutStore';
 import { useTabAnnouncer } from '@/hooks/useAnnounce';
 import { 
-  Terminal, 
   FileCode2, 
   FolderTree, 
   Globe,
@@ -23,15 +22,14 @@ interface SidebarItem {
   id: string;
   label: string;
   icon: React.ReactNode;
-  type: 'terminal' | 'editor' | 'browser' | 'explorer' | 'image' | 'video' | '3d';
+  type: 'editor' | 'browser' | 'explorer' | 'image' | 'video' | '3d';
   mode: AppMode | 'both';
 }
 
 const sidebarItems: SidebarItem[] = [
-  { id: 'terminal', label: 'Terminal', icon: <Terminal size={18} />, type: 'terminal', mode: 'developer' },
+  { id: 'browser', label: 'Web Browser', icon: <Globe size={18} />, type: 'browser', mode: 'both' },
   { id: 'editor', label: 'Code Editor', icon: <FileCode2 size={18} />, type: 'editor', mode: 'developer' },
   { id: 'explorer', label: 'File Explorer', icon: <FolderTree size={18} />, type: 'explorer', mode: 'developer' },
-  { id: 'browser', label: 'Browser Preview', icon: <Globe size={18} />, type: 'browser', mode: 'developer' },
   { id: 'image', label: 'Image Generator', icon: <Image size={18} />, type: 'image', mode: 'studio' },
   { id: 'video', label: 'Video Generator', icon: <Video size={18} />, type: 'video', mode: 'studio' },
   { id: '3d', label: '3D Modeling', icon: <Box size={18} />, type: '3d', mode: 'studio' },
@@ -135,7 +133,7 @@ export function Sidebar() {
       {/* Navigation Items */}
       <nav className="flex-1 p-4 space-y-1">
         <h3 className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">
-          {mode === 'developer' ? 'Development' : 'Creative'}
+          Tools
         </h3>
         {filteredItems.map((item) => (
           <button

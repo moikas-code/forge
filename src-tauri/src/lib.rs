@@ -1,5 +1,6 @@
 mod terminal;
 mod editor;
+mod browser;
 
 use std::sync::Arc;
 use tokio::sync::{mpsc, Mutex};
@@ -143,12 +144,16 @@ pub fn run() {
     // Create the terminal manager
     let terminal_manager = Arc::new(Mutex::new(terminal::TerminalManager::new(event_sender)));
     
+    // Create the browser manager
+    let browser_manager = browser::BrowserManager::new();
+    
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_store::Builder::new().build())
         .manage(terminal_manager)
+        .manage(browser_manager)
         .invoke_handler(tauri::generate_handler![
             greet,
             read_file,
@@ -178,7 +183,20 @@ pub fn run() {
             editor::restore_backup,
             editor::save_editor_session,
             editor::load_editor_session,
-            editor::list_editor_sessions
+            editor::list_editor_sessions,
+            browser::create_webview_window,
+            browser::navigate_browser,
+            browser::browser_go_back,
+            browser::browser_go_forward,
+            browser::browser_refresh,
+            browser::toggle_browser_devtools,
+            browser::set_browser_viewport,
+            browser::capture_browser_screenshot,
+            browser::get_browser_console_logs,
+            browser::clear_browser_console_logs,
+            browser::get_browser_viewport_presets,
+            browser::add_console_message,
+            browser::save_screenshot
         ])
         .setup(|app| {
             // Create the file watcher manager

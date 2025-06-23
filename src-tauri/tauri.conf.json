@@ -30,7 +30,7 @@
     ],
     "macOSPrivateApi": true,
     "security": {
-      "csp": "default-src 'self'; img-src 'self' asset: https: http: data: blob:; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self' ipc: http: https: ws: wss:; font-src 'self' data:; frame-src 'self' http://localhost:* http://127.0.0.1:*; child-src 'self' http://localhost:* http://127.0.0.1:*;"
+      "csp": "default-src 'self'; img-src 'self' asset: https: http: data: blob:; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self' ipc: http: https: ws: wss:; font-src 'self' data:; frame-src 'self' http: https:; child-src 'self' http: https:;"
     }
   },
   "bundle": {
