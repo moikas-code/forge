@@ -58,10 +58,13 @@ export function Terminal({
   const actions_ref = useRef<TerminalActions | null>(null);
   
   // Store actions reference to prevent re-initialization on actions change
-  actions_ref.current = actions;
+  actions_ref.current = actions || null;
   
   // Get terminal store for theme access
   const { sessions } = useTerminalStore();
+  
+  // State for accessibility and high contrast mode
+  const [high_contrast_mode, set_high_contrast_mode] = useState<boolean>(false);
   
   // Memoize current theme to prevent unnecessary re-calculations
   const current_theme = useMemo(() => {
@@ -118,7 +121,6 @@ export function Terminal({
   const [feedback_message, set_feedback_message] = useState<string>('');
   const [feedback_type, set_feedback_type] = useState<'success' | 'error' | null>(null);
   const [screen_reader_announcement, set_screen_reader_announcement] = useState<string>('');
-  const [high_contrast_mode, set_high_contrast_mode] = useState<boolean>(false);
 
   // Detect high contrast mode and accessibility preferences
   useEffect(() => {
@@ -655,7 +657,6 @@ export function Terminal({
         Press Ctrl+K to clear terminal. 
         Press Ctrl+F to search. 
         Status: {current_pane?.status || 'idle'}.
-        {current_pane?.process_info?.command && ` Running: ${current_pane.process_info.command}.`}
       </div>
     </div>
   );

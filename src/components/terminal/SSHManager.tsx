@@ -151,9 +151,7 @@ export function SSHManager({ className }: SSHManagerProps) {
 
   const handle_connect = async (connection: SSHConnection) => {
     // Create new terminal session with SSH connection
-    const session_id = create_session({
-      title: `SSH: ${connection.name}`,
-    });
+    const session_id = create_session(`SSH: ${connection.name}`);
 
     try {
       // Wait a moment for terminal to initialize

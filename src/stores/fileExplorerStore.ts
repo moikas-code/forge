@@ -44,6 +44,8 @@ export const use_file_explorer_store = create<FileExplorerStore>()(
       show_hidden_files: false,
       sort_by: 'name',
       sort_direction: 'asc',
+      dragging_files: [],
+      drop_target: null,
 
       // Actions
       navigate_to_directory: async (path: string) => {
@@ -292,6 +294,60 @@ export const use_file_explorer_store = create<FileExplorerStore>()(
           set({ error: `Failed to initialize file explorer: ${error}` });
         } finally {
           set({ is_loading: false });
+        }
+      },
+      
+      start_drag: (files: string[]) => {
+        set({ dragging_files: files });
+      },
+      
+      set_drop_target: (target: string | null) => {
+        set({ drop_target: target });
+      },
+      
+      handle_drop: async (target_path: string) => {
+        const { dragging_files, clipboard } = get();
+        
+        if (dragging_files.length === 0) return;
+        
+        set({ is_loading: true, error: null });
+        
+        try {
+          // Move files to the target directory
+          for (const source_path of dragging_files) {
+            const file_name = source_path.split('/').pop() || '';
+            const dest_path = `${target_path}/${file_name}`;
+            
+            // Check if dropping on same directory
+            const source_dir = source_path.substring(0, source_path.lastIndexOf('/'));
+            if (source_dir === target_path) {
+              continue;
+            }
+            
+            await invoke('rename_file', { oldPath: source_path, newPath: dest_path });
+          }
+          
+          // Clear drag state
+          set({ 
+            dragging_files: [], 
+            drop_target: null,
+            selected_files: []
+          });
+          
+          // Refresh both source and target directories
+          const source_dirs = new Set(dragging_files.map(f => 
+            f.substring(0, f.lastIndexOf('/'))
+          ));
+          
+          for (const dir of source_dirs) {
+            get().refresh_directory(dir);
+          }
+          get().refresh_directory(target_path);
+          
+        } catch (error) {
+          set({ error: `Failed to move files: ${error}` });
+        } finally {
+          set({ is_loading: false, dragging_files: [], drop_target: null });
         }
       },
     }),

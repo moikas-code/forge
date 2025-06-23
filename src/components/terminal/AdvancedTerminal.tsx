@@ -53,7 +53,7 @@ export function AdvancedTerminal({
   } = useTerminalStore();
 
   // Get effective profile
-  const effective_profile = profile || get_profile(profile?.id || '');
+  const effective_profile = profile || get_profile('');
 
   useEffect(() => {
     if (!terminal_ref.current) return;
@@ -363,9 +363,9 @@ export function AdvancedTerminal({
       if (char === '\r' || char === '\n') {
         // Command submitted
         if (current_line_ref.current.trim()) {
-          add_to_history(pane_id, current_line_ref.current.trim());
+          add_to_history(terminal_id || '', current_line_ref.current.trim());
         }
-        reset_history_index(pane_id);
+        reset_history_index();
         current_line_ref.current = '';
         cursor_position_ref.current = 0;
         in_command_input_ref.current = false;
@@ -381,7 +381,7 @@ export function AdvancedTerminal({
         // Ctrl+C - reset current line
         current_line_ref.current = '';
         cursor_position_ref.current = 0;
-        reset_history_index(pane_id);
+        reset_history_index();
       } else if (char >= ' ' && char <= '~') {
         // Printable character
         current_line_ref.current = 
@@ -397,7 +397,7 @@ export function AdvancedTerminal({
   const handle_history_navigation = useCallback((direction: 'up' | 'down') => {
     if (!pane_id || !xterm_ref.current) return;
 
-    const history_command = navigate_history(pane_id, direction);
+    const history_command = navigate_history(direction);
     
     if (history_command !== null) {
       // Clear current line and write history command

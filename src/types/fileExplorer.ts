@@ -57,6 +57,8 @@ export interface FileExplorerState {
   show_hidden_files: boolean;
   sort_by: 'name' | 'size' | 'modified' | 'type';
   sort_direction: 'asc' | 'desc';
+  dragging_files: string[];
+  drop_target: string | null;
 }
 
 export interface FileExplorerActions {
@@ -82,6 +84,9 @@ export interface FileExplorerActions {
   set_loading: (loading: boolean) => void;
   set_error: (error: string | null) => void;
   initialize: () => Promise<void>;
+  start_drag: (files: string[]) => void;
+  set_drop_target: (target: string | null) => void;
+  handle_drop: (target_path: string) => Promise<void>;
 }
 
 export type FileExplorerStore = FileExplorerState & FileExplorerActions;

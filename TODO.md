@@ -67,24 +67,24 @@
 - [x] Implement advanced editor features (minimap, word wrap, line numbers)
 - [x] Add keyboard shortcuts and accessibility features
 
-## 📁 Day 9-10: File Explorer
-- [ ] Create FileExplorer.tsx component
-- [ ] Build tree view with expand/collapse using shadcn/ui
-- [ ] Add file/folder icons based on extension (lucide-react)
-- [ ] Implement Rust directory reading
-- [ ] Add context menu (new, rename, delete)
-- [ ] Implement drag-and-drop for files
-- [ ] Add file search with fuzzy matching
-- [ ] Create new file/folder dialogs with shadcn/ui
-- [ ] Connect file clicks to editor
-- [ ] Test file operations
+## ✅ Day 9-10: File Explorer (COMPLETED)
+- [x] Create FileExplorer.tsx component
+- [x] Build tree view with expand/collapse using shadcn/ui
+- [x] Add file/folder icons based on extension (lucide-react)
+- [x] Implement Rust directory reading
+- [x] Add context menu (new, rename, delete)
+- [x] Implement drag-and-drop for files
+- [x] Add file search with fuzzy matching
+- [x] Create new file/folder dialogs with shadcn/ui
+- [x] Connect file clicks to editor
+- [x] Test file operations
 
 ## 🌐 Day 11-12: Browser
-- [ ] Allow user, code preveiws and agent to visit websites
-- [ ] Create Browser.tsx component
+- [ ] Allow user to view the internet, code preveiws and agent to visit websites
+- [x] Create Browser.tsx component
 - [ ] Add navigation toolbar (back, forward, refresh, URL bar)
 - [ ] Implement Tauri WebView integration
-- [ ] Configure CSP for webview in tauri.conf.json (already done)
+- [x] Configure CSP for webview in tauri.conf.json (already done)
 - [ ] Add DevTools toggle button
 - [ ] Create loading states and error handling
 - [ ] Implement hot reload for local development

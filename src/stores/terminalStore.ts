@@ -1,18 +1,23 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-export type ShellType = 'bash' | 'zsh' | 'fish' | 'powershell' | 'cmd';
+export type ShellType = 'bash' | 'zsh' | 'fish' | 'powershell' | 'cmd' | 'custom';
 export type TerminalStatus = 'idle' | 'running' | 'error' | 'exited';
 
 export interface TerminalProfile {
   id: string;
   name: string;
   shell: ShellType;
+  shell_type?: ShellType;
+  shell_path?: string;
+  shell_args?: string[];
   font_size: number;
   font_family: string;
   theme: string;
   is_default: boolean;
   env_variables: Record<string, string>;
+  environment?: Record<string, string>;
+  working_directory?: string;
 }
 
 export interface TerminalPane {
@@ -46,6 +51,8 @@ interface TerminalState {
   sessions: TerminalSession[];
   active_session_id: string | null;
   max_sessions: number;
+  profiles: TerminalProfile[];
+  default_profile_id: string | null;
   
   // Actions
   create_session: (title?: string) => string;
@@ -63,11 +70,32 @@ interface TerminalState {
   navigate_history: (direction: 'up' | 'down') => string | null;
   reset_history_index: () => void;
   get_profile: (id: string) => TerminalProfile | undefined;
+  add_profile: (profile: Omit<TerminalProfile, 'id'>) => string;
+  update_profile: (id: string, updates: Partial<TerminalProfile>) => void;
+  remove_profile: (id: string) => void;
+  set_default_profile: (id: string) => void;
 }
 
 const DEFAULT_MAX_SESSIONS = 10;
 const DEFAULT_HISTORY_SIZE = 1000;
 const DEFAULT_OUTPUT_BUFFER_SIZE = 5000;
+
+// Create default profile
+const DEFAULT_PROFILE: TerminalProfile = {
+  id: 'default',
+  name: 'Default',
+  shell: 'bash' as ShellType,
+  shell_type: 'bash' as ShellType,
+  shell_path: '/bin/bash',
+  shell_args: ['-l'],
+  font_size: 14,
+  font_family: 'monospace',
+  theme: 'default',
+  is_default: true,
+  env_variables: {},
+  environment: {},
+  working_directory: undefined,
+};
 
 export const useTerminalStore = create<TerminalState>()(
   persist(
@@ -75,6 +103,8 @@ export const useTerminalStore = create<TerminalState>()(
       sessions: [],
       active_session_id: null,
       max_sessions: DEFAULT_MAX_SESSIONS,
+      profiles: [DEFAULT_PROFILE],
+      default_profile_id: 'default',
       
       create_session: (title?: string) => {
         const id = crypto.randomUUID();
@@ -289,17 +319,59 @@ export const useTerminalStore = create<TerminalState>()(
       },
       
       get_profile: (id: string) => {
-        // Return a default profile - in a real app this would come from a profiles store
-        return {
-          id: id || 'default',
-          name: 'Default',
-          shell: 'bash' as ShellType,
-          font_size: 14,
-          font_family: 'monospace',
-          theme: 'default',
-          is_default: true,
-          env_variables: {},
+        const state = get();
+        return state.profiles.find(p => p.id === id) || state.profiles.find(p => p.is_default) || DEFAULT_PROFILE;
+      },
+      
+      add_profile: (profile: Omit<TerminalProfile, 'id'>) => {
+        const id = crypto.randomUUID();
+        const new_profile: TerminalProfile = {
+          ...profile,
+          id,
+          is_default: false,
         };
+        
+        set((state) => ({
+          profiles: [...state.profiles, new_profile],
+        }));
+        
+        return id;
+      },
+      
+      update_profile: (id: string, updates: Partial<TerminalProfile>) => {
+        set((state) => ({
+          profiles: state.profiles.map(p => 
+            p.id === id ? { ...p, ...updates } : p
+          ),
+        }));
+      },
+      
+      remove_profile: (id: string) => {
+        set((state) => {
+          const filtered_profiles = state.profiles.filter(p => p.id !== id);
+          let new_default_id = state.default_profile_id;
+          
+          // If we removed the default profile, set a new default
+          if (state.default_profile_id === id && filtered_profiles.length > 0) {
+            new_default_id = filtered_profiles[0].id;
+            filtered_profiles[0].is_default = true;
+          }
+          
+          return {
+            profiles: filtered_profiles,
+            default_profile_id: new_default_id,
+          };
+        });
+      },
+      
+      set_default_profile: (id: string) => {
+        set((state) => ({
+          profiles: state.profiles.map(p => ({
+            ...p,
+            is_default: p.id === id,
+          })),
+          default_profile_id: id,
+        }));
       },
     }),
     {
@@ -313,6 +385,8 @@ export const useTerminalStore = create<TerminalState>()(
         })),
         active_session_id: state.active_session_id,
         max_sessions: state.max_sessions,
+        profiles: state.profiles,
+        default_profile_id: state.default_profile_id,
       }),
       onRehydrateStorage: () => (state) => {
         if (state) {

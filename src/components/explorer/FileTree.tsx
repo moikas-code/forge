@@ -66,68 +66,143 @@ export function FileTree() {
     });
   }, [expanded_directories, directory_contents, load_directory]);
 
+  // Fuzzy matching function with scoring
+  const fuzzy_match = (str: string, pattern: string): { matches: boolean; score: number } => {
+    const str_lower = str.toLowerCase();
+    const pattern_lower = pattern.toLowerCase();
+    
+    // Exact match gets highest score
+    if (str_lower === pattern_lower) {
+      return { matches: true, score: 1000 };
+    }
+    
+    // Contains match gets high score
+    if (str_lower.includes(pattern_lower)) {
+      // Higher score if match is at the beginning
+      const index = str_lower.indexOf(pattern_lower);
+      return { matches: true, score: 900 - index };
+    }
+    
+    // Fuzzy match: check if all characters appear in order
+    let pattern_idx = 0;
+    let score = 0;
+    let consecutive = 0;
+    
+    for (let i = 0; i < str_lower.length && pattern_idx < pattern_lower.length; i++) {
+      if (str_lower[i] === pattern_lower[pattern_idx]) {
+        pattern_idx++;
+        score += 10 + consecutive * 5; // Bonus for consecutive matches
+        consecutive++;
+      } else {
+        consecutive = 0;
+      }
+    }
+    
+    const matches = pattern_idx === pattern_lower.length;
+    return { matches, score: matches ? score : 0 };
+  };
+
   // Filter and sort files
   const filtered_and_sorted_files = useMemo(() => {
     const files = directory_contents.get(current_directory) || [];
     
-    // Filter files
-    let filtered = files.filter(file => {
-      // Hide hidden files if option is disabled
-      if (!show_hidden_files && file.name.startsWith('.')) {
-        return false;
-      }
-      
-      // Apply search filter
-      if (search_query) {
-        const query = search_query.toLowerCase();
-        return file.name.toLowerCase().includes(query);
-      }
-      
-      return true;
-    });
+    // Filter files and calculate match scores
+    let filtered_with_scores = files
+      .map(file => {
+        // Hide hidden files if option is disabled
+        if (!show_hidden_files && file.name.startsWith('.')) {
+          return null;
+        }
+        
+        // Apply search filter with fuzzy matching
+        if (search_query) {
+          const match_result = fuzzy_match(file.name, search_query);
+          if (!match_result.matches) {
+            return null;
+          }
+          return { file, score: match_result.score };
+        }
+        
+        return { file, score: 0 };
+      })
+      .filter((item): item is { file: FileNode; score: number } => item !== null);
+    
+    // Extract files from scored results
+    let filtered = filtered_with_scores.map(item => item.file);
 
     // Sort files
-    filtered.sort((a, b) => {
-      // Directories first
-      if (a.is_directory && !b.is_directory) return -1;
-      if (!a.is_directory && b.is_directory) return 1;
-
-      let comparison = 0;
+    if (search_query) {
+      // When searching, sort by match score first
+      filtered_with_scores.sort((a, b) => {
+        // Higher scores first
+        const score_diff = b.score - a.score;
+        if (score_diff !== 0) return score_diff;
+        
+        // Then directories first
+        if (a.file.is_directory && !b.file.is_directory) return -1;
+        if (!a.file.is_directory && b.file.is_directory) return 1;
+        
+        // Then by name
+        return a.file.name.localeCompare(b.file.name);
+      });
       
-      switch (sort_by) {
-        case 'name':
-          comparison = a.name.localeCompare(b.name);
-          break;
-        case 'size':
-          comparison = (a.size || 0) - (b.size || 0);
-          break;
-        case 'modified':
-          comparison = (a.modified_date || 0) - (b.modified_date || 0);
-          break;
-        case 'type':
-          const a_ext = a.name.split('.').pop() || '';
-          const b_ext = b.name.split('.').pop() || '';
-          comparison = a_ext.localeCompare(b_ext);
-          break;
-      }
+      // Update filtered array with the sorted order
+      filtered = filtered_with_scores.map(item => item.file);
+    } else {
+      // Normal sorting when not searching
+      filtered.sort((a, b) => {
+        // Directories first
+        if (a.is_directory && !b.is_directory) return -1;
+        if (!a.is_directory && b.is_directory) return 1;
 
-      return sort_direction === 'asc' ? comparison : -comparison;
-    });
+        let comparison = 0;
+        
+        switch (sort_by) {
+          case 'name':
+            comparison = a.name.localeCompare(b.name);
+            break;
+          case 'size':
+            comparison = (a.size || 0) - (b.size || 0);
+            break;
+          case 'modified':
+            comparison = (a.modified_date || 0) - (b.modified_date || 0);
+            break;
+          case 'type':
+            const a_ext = a.name.split('.').pop() || '';
+            const b_ext = b.name.split('.').pop() || '';
+            comparison = a_ext.localeCompare(b_ext);
+            break;
+        }
+
+        return sort_direction === 'asc' ? comparison : -comparison;
+      });
+    }
 
     return filtered;
   }, [directory_contents, current_directory, show_hidden_files, search_query, sort_by, sort_direction]);
 
   // Convert to tree nodes for recursive rendering
   const build_tree_nodes = (files: FileNode[], parent_path: string, level = 0): TreeNode[] => {
-    return files.map(file => ({
-      ...file,
-      children: file.is_directory && expanded_directories.has(file.path) 
-        ? build_tree_nodes(directory_contents.get(file.path) || [], file.path, level + 1)
-        : undefined,
-      is_expanded: expanded_directories.has(file.path),
-      is_loading: loading_directories.has(file.path),
-      level,
-    }));
+    return files
+      .filter(file => {
+        // Apply same filtering logic for nested items
+        if (!show_hidden_files && file.name.startsWith('.')) {
+          return false;
+        }
+        if (search_query) {
+          return fuzzy_match(file.name, search_query).matches;
+        }
+        return true;
+      })
+      .map(file => ({
+        ...file,
+        children: file.is_directory && expanded_directories.has(file.path) 
+          ? build_tree_nodes(directory_contents.get(file.path) || [], file.path, level + 1)
+          : undefined,
+        is_expanded: expanded_directories.has(file.path),
+        is_loading: loading_directories.has(file.path),
+        level,
+      }));
   };
 
   const tree_nodes = view_mode === 'tree' 

@@ -69,7 +69,7 @@ export function ProfileManagement({ onClose, className }: ProfileManagementProps
     set_editing_profile_id(profile.id);
     set_form_data({
       name: profile.name,
-      shell_type: profile.shell_type,
+      shell_type: profile.shell_type || profile.shell || 'bash',
       shell_path: profile.shell_path || '',
       shell_args: profile.shell_args?.join(' ') || '',
       environment: profile.environment ? 
@@ -122,9 +122,15 @@ export function ProfileManagement({ onClose, className }: ProfileManagementProps
 
     const profile_data = {
       name: form_data.name.trim() || 'Unnamed Profile',
+      shell: form_data.shell_type,
       shell_type: form_data.shell_type,
       shell_path: form_data.shell_path.trim() || undefined,
       shell_args: shell_args.length > 0 ? shell_args : undefined,
+      font_size: 14,
+      font_family: 'monospace',
+      theme: 'default',
+      is_default: false,
+      env_variables: environment,
       environment: Object.keys(environment).length > 0 ? environment : undefined,
       working_directory: form_data.working_directory.trim() || undefined,
     };

@@ -23,7 +23,7 @@ export function ProfileSelector({
   } = useTerminalStore();
   
   const [is_open, set_is_open] = useState(false);
-  const [selected_profile_id, set_selected_profile_id] = useState<string | undefined>(default_profile_id);
+  const [selected_profile_id, set_selected_profile_id] = useState<string | undefined>(default_profile_id || undefined);
   
   const selected_profile = profiles.find(p => p.id === selected_profile_id);
   

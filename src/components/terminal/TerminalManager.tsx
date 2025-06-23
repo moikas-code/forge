@@ -202,21 +202,7 @@ export function TerminalManager({ className }: TerminalManagerProps) {
               if (active_pane) {
                 parts.push(`Status: ${active_pane.status}`);
                 
-                if (active_pane.process_info?.command) {
-                  parts.push(`Command: ${active_pane.process_info.command}`);
-                }
-                
-                if (active_pane.process_info?.pid) {
-                  parts.push(`PID: ${active_pane.process_info.pid}`);
-                }
-                
-                if (active_pane.process_info?.cpu_usage !== undefined) {
-                  parts.push(`CPU: ${Math.round(active_pane.process_info.cpu_usage)}%`);
-                }
-                
-                if (active_pane.process_info?.memory_usage !== undefined) {
-                  parts.push(`Memory: ${Math.round(active_pane.process_info.memory_usage)} MB`);
-                }
+                // Simplified - process_info functionality disabled for now
               }
               
               return parts.join('\n');
@@ -279,8 +265,8 @@ export function TerminalManager({ className }: TerminalManagerProps) {
       
       {/* Terminal toolbar */}
       <TerminalToolbar
-        session_id={active_session_id}
-        pane_id={active_session_id}
+        session_id={active_session_id || ''}
+        pane_id={active_session_id || ''}
         on_clear={handle_clear}
         on_copy={handle_copy}
         on_search={() => {}} // TODO: Implement search

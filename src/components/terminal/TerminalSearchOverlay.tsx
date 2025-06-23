@@ -23,14 +23,13 @@ export function TerminalSearchOverlay({
   onClose, 
   className 
 }: TerminalSearchOverlayProps) {
-  const {
-    search_state,
-    start_search,
-    update_search,
-    find_next,
-    find_previous,
-    stop_search,
-  } = useTerminalStore();
+  // TODO: Implement search functionality in terminal store
+  const search_state = { query: '', case_sensitive: false, use_regex: false };
+  const start_search = () => {};
+  const update_search = () => {};
+  const find_next = () => {};
+  const find_previous = () => {};
+  const stop_search = () => {};
 
   const [show_options, set_show_options] = useState(false);
   const [local_query, set_local_query] = useState(search_state.query);

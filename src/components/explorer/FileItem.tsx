@@ -1,6 +1,7 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
 import type { TreeNode } from '@/types/fileExplorer';
+import { use_file_explorer_store } from '@/stores/fileExplorerStore';
 import {
   ChevronRight,
   ChevronDown,
@@ -115,18 +116,76 @@ export function FileItem({
 }: FileItemProps) {
   const FileIcon = get_file_icon(file.name, file.is_directory);
   const indent_width = level * 16; // 16px per level
+  
+  const { 
+    dragging_files, 
+    drop_target, 
+    start_drag, 
+    set_drop_target, 
+    handle_drop,
+    selected_files 
+  } = use_file_explorer_store();
+  
+  const is_dragging = dragging_files.includes(file.path);
+  const is_drop_target = drop_target === file.path && file.is_directory;
+  
+  const handle_drag_start = (e: React.DragEvent) => {
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', file.path);
+    
+    // If the dragged file is selected, drag all selected files
+    const files_to_drag = is_selected ? selected_files : [file.path];
+    start_drag(files_to_drag);
+  };
+  
+  const handle_drag_end = () => {
+    start_drag([]);
+    set_drop_target(null);
+  };
+  
+  const handle_drag_over = (e: React.DragEvent) => {
+    if (!file.is_directory || dragging_files.includes(file.path)) return;
+    
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    set_drop_target(file.path);
+  };
+  
+  const handle_drag_leave = (e: React.DragEvent) => {
+    // Only clear if we're leaving this element entirely
+    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+      set_drop_target(null);
+    }
+  };
+  
+  const handle_drop_event = async (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (!file.is_directory || dragging_files.includes(file.path)) return;
+    
+    await handle_drop(file.path);
+  };
 
   return (
     <div
       className={cn(
         "flex items-center gap-2 px-2 py-1.5 rounded-md cursor-pointer group hover:bg-accent/50 transition-colors",
         is_selected && "bg-accent text-accent-foreground",
-        file.readonly && "opacity-60"
+        file.readonly && "opacity-60",
+        is_dragging && "opacity-50",
+        is_drop_target && "bg-blue-500/20 ring-2 ring-blue-500/50"
       )}
       style={{ paddingLeft: `${8 + indent_width}px` }}
       onClick={onClick}
       onDoubleClick={onDoubleClick}
       onContextMenu={onContextMenu}
+      onDragStart={handle_drag_start}
+      onDragEnd={handle_drag_end}
+      onDragOver={handle_drag_over}
+      onDragLeave={handle_drag_leave}
+      onDrop={handle_drop_event}
+      draggable={!file.readonly}
       title={file.path}
     >
       {/* Expand/Collapse Icon */}

@@ -156,9 +156,7 @@ export function CommandPalette({ is_open, on_close }: CommandPaletteProps) {
         keywords: ['ssh', 'connect', connection.name, connection.host, connection.username],
         action: async () => {
           // Create new terminal session with SSH connection
-          const session_id = create_session({
-            title: `SSH: ${connection.name}`,
-          });
+          const session_id = create_session(`SSH: ${connection.name}`);
           
           try {
             // Wait a moment for terminal to initialize
