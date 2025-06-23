@@ -1,8 +1,9 @@
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
-import { invoke } from '@tauri-apps/api/core';
+import { getFileSystemService } from '@/services/electron/filesystem';
 import { use_file_explorer_store } from '@/stores/fileExplorerStore';
 import { useLayoutStore } from '@/stores/layoutStore';
 import type { FileNode, TreeNode } from '@/types/fileExplorer';
+import type { FileInfo } from '@/services/electron/index';
 import { FileItem } from './FileItem';
 import { FileContextMenu } from './FileContextMenu';
 
@@ -32,6 +33,21 @@ export function FileTree() {
 
   const { addTab } = useLayoutStore();
 
+  // Convert Electron FileInfo to FileNode format
+  const convert_file_info_to_node = (info: FileInfo): FileNode => {
+    return {
+      name: info.name,
+      path: info.path,
+      is_directory: info.is_directory,
+      size: info.size,
+      modified_date: info.modified.getTime(),
+      created_date: info.created.getTime(),
+      readonly: info.readonly,
+      permissions: info.permissions,
+      parent_path: info.path.substring(0, info.path.lastIndexOf('/'))
+    };
+  };
+
   // Load directory contents
   const load_directory = useCallback(async (path: string) => {
     if (loading_directories.has(path)) return;
@@ -39,7 +55,9 @@ export function FileTree() {
     set_loading_directories(prev => new Set(prev).add(path));
 
     try {
-      const files = await invoke<FileNode[]>('list_directory', { dirPath: path });
+      const fs = getFileSystemService();
+      const file_infos = await fs.listDirectory(path);
+      const files = file_infos.map(convert_file_info_to_node);
       set_directory_contents(prev => new Map(prev).set(path, files));
     } catch (error) {
       console.error(`Failed to load directory ${path}:`, error);
@@ -65,6 +83,50 @@ export function FileTree() {
       }
     });
   }, [expanded_directories, directory_contents, load_directory]);
+
+  // Set up file watching for current directory and expanded directories
+  useEffect(() => {
+    const fs = getFileSystemService();
+    const watched_paths = new Set<string>();
+    
+    // Watch current directory
+    watched_paths.add(current_directory);
+    
+    // Watch all expanded directories
+    expanded_directories.forEach(path => {
+      watched_paths.add(path);
+    });
+    
+    // Set up watchers
+    const setup_watchers = async () => {
+      for (const path of watched_paths) {
+        try {
+          await fs.watchFile(path, (event) => {
+            // Reload the directory when changes occur
+            load_directory(path);
+          });
+        } catch (error) {
+          console.error(`Failed to watch directory ${path}:`, error);
+        }
+      }
+    };
+    
+    setup_watchers();
+    
+    // Cleanup watchers on unmount or when watched paths change
+    return () => {
+      const cleanup_watchers = async () => {
+        for (const path of watched_paths) {
+          try {
+            await fs.unwatchFile(path);
+          } catch (error) {
+            console.error(`Failed to unwatch directory ${path}:`, error);
+          }
+        }
+      };
+      cleanup_watchers();
+    };
+  }, [current_directory, expanded_directories, load_directory]);
 
   // Fuzzy matching function with scoring
   const fuzzy_match = (str: string, pattern: string): { matches: boolean; score: number } => {

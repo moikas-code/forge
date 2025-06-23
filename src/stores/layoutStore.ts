@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { getStorage } from '@/lib/zustand-electron-storage';
 
 export type AppMode = 'developer' | 'studio';
 export type Theme = 'light' | 'dark';
@@ -176,6 +177,7 @@ export const useLayoutStore = create<LayoutState>()(
     }),
     {
       name: 'forge-moi-layout',
+      storage: getStorage(),
       partialize: (state) => ({
         mode: state.mode,
         theme: state.theme,

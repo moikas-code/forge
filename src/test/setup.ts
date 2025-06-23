@@ -11,17 +11,46 @@ vi.mock('@tauri-apps/api/event', () => ({
   emit: vi.fn(),
 }));
 
-vi.mock('@tauri-apps/plugin-store', () => ({
-  Store: vi.fn(() => ({
-    get: vi.fn(),
-    set: vi.fn(),
-    delete: vi.fn(),
-    clear: vi.fn(),
-    keys: vi.fn(),
-    length: vi.fn(),
-    save: vi.fn(),
-  })),
-}));
+// Mock Electron API
+(global as any).window = {
+  ...global.window,
+  electron: {
+    terminal: {
+      create: vi.fn(),
+      write: vi.fn(),
+      resize: vi.fn(),
+      close: vi.fn(),
+      onData: vi.fn(),
+      onExit: vi.fn(),
+      getSessionInfo: vi.fn(),
+      getHistory: vi.fn(),
+      getCwd: vi.fn(),
+      testSSH: vi.fn(),
+    },
+    store: {
+      get: vi.fn(),
+      set: vi.fn(),
+      delete: vi.fn(),
+      clear: vi.fn(),
+    },
+    fs: {
+      readFile: vi.fn(),
+      writeFile: vi.fn(),
+      exists: vi.fn(),
+      getInfo: vi.fn(),
+      createFile: vi.fn(),
+      deleteFile: vi.fn(),
+      rename: vi.fn(),
+      copy: vi.fn(),
+      listDirectory: vi.fn(),
+      watchFile: vi.fn(),
+      unwatchFile: vi.fn(),
+      createBackup: vi.fn(),
+      restoreBackup: vi.fn(),
+      onFileChange: vi.fn(),
+    },
+  },
+};
 
 vi.mock('@tauri-apps/plugin-fs', () => ({
   readTextFile: vi.fn(),

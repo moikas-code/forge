@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { getStorage } from '@/lib/zustand-electron-storage';
 
 export interface Bookmark {
   id: string;
@@ -191,6 +192,7 @@ export const use_browser_store = create<BrowserState>()(
     }),
     {
       name: 'browser-storage',
+      storage: getStorage(),
       partialize: (state) => ({
         bookmarks: state.bookmarks,
         bookmark_folders: state.bookmark_folders,

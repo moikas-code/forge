@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { invoke } from '@tauri-apps/api/core';
+import { getStorage } from '@/lib/zustand-electron-storage';
+import { getElectronAPI } from '@/services/electron';
 
 // Types for terminal session persistence
 export interface TerminalSessionState {
@@ -230,19 +231,17 @@ export const useTerminalPersistenceStore = create<TerminalPersistenceState>()(
       // Session persistence actions
       save_session_state: async (session_id: string) => {
         try {
+          const api = getElectronAPI();
+          if (!api) {
+            console.error('Electron API not available');
+            return;
+          }
+          
           // Get session info from backend
-          const session_info = await invoke<{
-            cwd: string;
-            shell: string;
-            environment: Record<string, string>;
-            is_running: boolean;
-            exit_code?: number;
-          }>('get_terminal_session_info', { terminalId: session_id });
+          const session_info = await api.terminal.getSessionInfo(session_id);
           
           // Get command history from backend  
-          const history = await invoke<string[]>('get_terminal_history', { 
-            terminalId: session_id 
-          });
+          const history = await api.terminal.getHistory(session_id);
           
           const session_state: TerminalSessionState = {
             id: session_id,
@@ -254,8 +253,8 @@ export const useTerminalPersistenceStore = create<TerminalPersistenceState>()(
             scroll_position: 0,
             created_at: new Date().toISOString(),
             last_active: new Date().toISOString(),
-            is_running: session_info.is_running,
-            exit_code: session_info.exit_code,
+            is_running: session_info.isRunning,
+            exit_code: undefined, // Electron API doesn't provide exit_code in session info
           };
           
           set((state) => {
@@ -287,14 +286,18 @@ export const useTerminalPersistenceStore = create<TerminalPersistenceState>()(
         if (!session) return false;
         
         try {
+          const api = getElectronAPI();
+          if (!api) {
+            console.error('Electron API not available');
+            return false;
+          }
+          
           // Create new terminal with saved state
-          await invoke('create_terminal_with_state', {
-            options: {
-              shell: session.shell,
-              cwd: session.cwd,
-              env: session.environment_variables,
-              history: session.command_history,
-            }
+          await api.terminal.create({
+            shell: session.shell,
+            cwd: session.cwd,
+            env: session.environment_variables,
+            // Note: Electron API doesn't support restoring command history directly
           });
           
           return true;
@@ -379,7 +382,13 @@ export const useTerminalPersistenceStore = create<TerminalPersistenceState>()(
         if (!connection) return false;
         
         try {
-          const result = await invoke<boolean>('test_ssh_connection', {
+          const api = getElectronAPI();
+          if (!api) {
+            console.error('Electron API not available');
+            return false;
+          }
+          
+          const result = await api.terminal.testSSH({
             host: connection.host,
             port: connection.port,
             username: connection.username,
@@ -413,6 +422,7 @@ export const useTerminalPersistenceStore = create<TerminalPersistenceState>()(
     }),
     {
       name: 'forge-moi-terminal-persistence',
+      storage: getStorage(),
       partialize: (state) => ({
         saved_sessions: state.saved_sessions,
         auto_save_enabled: state.auto_save_enabled,

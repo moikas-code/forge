@@ -2,8 +2,7 @@
 
 import { useEffect, useState, useRef, useCallback } from 'react';
 import Editor, { Monaco } from '@monaco-editor/react';
-import { invoke } from '@tauri-apps/api/core';
-import { readTextFile, writeTextFile } from '@tauri-apps/plugin-fs';
+import { getFileSystemService } from '@/services/electron/filesystem';
 import { useLayoutStore } from '@/stores/layoutStore';
 import { useEditorStore } from '@/stores/editorStore';
 import { configureMonaco, getEditorOptions, getLanguageFromExtension } from '@/lib/monaco-config';
@@ -72,7 +71,8 @@ export function CodeEditor({ tabId, path, content: initialContent, className }: 
     setLoading(true);
     setError(null);
     try {
-      const content = await readTextFile(filepath);
+      const fs = getFileSystemService();
+      const content = await fs.readFile(filepath);
       setEditorState(tabId, { 
         content, 
         path: filepath,
@@ -109,7 +109,8 @@ export function CodeEditor({ tabId, path, content: initialContent, className }: 
     
     setSaving(true);
     try {
-      await writeTextFile(path, editorState.content);
+      const fs = getFileSystemService();
+      await fs.writeFile(path, editorState.content);
       setDirtyState(tabId, false);
       setError(null);
     } catch (err) {

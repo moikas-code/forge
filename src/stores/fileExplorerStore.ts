@@ -1,12 +1,14 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { invoke } from '@tauri-apps/api/core';
+import { getStorage } from '@/lib/zustand-electron-storage';
+import { getFileSystemService } from '@/services/electron/filesystem';
 import type { 
   FileExplorerStore, 
   FileNode, 
   FavoriteDirectory, 
   FileSearchOptions 
 } from '@/types/fileExplorer';
+import type { FileInfo } from '@/services/electron/index';
 
 const DEFAULT_SEARCH_OPTIONS: FileSearchOptions = {
   query: '',
@@ -17,11 +19,29 @@ const DEFAULT_SEARCH_OPTIONS: FileSearchOptions = {
 
 const get_home_directory = async (): Promise<string> => {
   try {
-    // Try to get home directory from environment
-    return await invoke('get_terminal_cwd') || '/home';
+    // Get home directory from Electron
+    const homedir = process.platform === 'win32' 
+      ? process.env.USERPROFILE || 'C:\\Users\\' 
+      : process.env.HOME || '/home';
+    return homedir;
   } catch {
-    return '/home';
+    return process.platform === 'win32' ? 'C:\\Users\\' : '/home';
   }
+};
+
+// Convert Electron FileInfo to FileNode format
+const convert_file_info_to_node = (info: FileInfo): FileNode => {
+  return {
+    name: info.name,
+    path: info.path,
+    is_directory: info.is_directory,
+    size: info.size,
+    modified_date: info.modified.getTime(),
+    created_date: info.created.getTime(),
+    readonly: info.readonly,
+    permissions: info.permissions,
+    parent_path: info.path.substring(0, info.path.lastIndexOf('/'))
+  };
 };
 
 export const use_file_explorer_store = create<FileExplorerStore>()(
@@ -52,8 +72,15 @@ export const use_file_explorer_store = create<FileExplorerStore>()(
         set({ is_loading: true, error: null });
         
         try {
+          const fs = getFileSystemService();
+          
           // Verify directory exists and is accessible
-          const file_info = await invoke<FileNode>('get_file_metadata', { filePath: path });
+          const exists = await fs.exists(path);
+          if (!exists) {
+            throw new Error('Directory does not exist');
+          }
+          
+          const file_info = await fs.getInfo(path);
           
           if (!file_info.is_directory) {
             throw new Error('Path is not a directory');
@@ -155,8 +182,9 @@ export const use_file_explorer_store = create<FileExplorerStore>()(
         set({ is_loading: true, error: null });
         
         try {
+          const fs = getFileSystemService();
           const file_path = `${path}/${name}`;
-          await invoke('create_file', { filePath: file_path, content });
+          await fs.createFile(file_path, content);
           get().refresh_directory(path);
         } catch (error) {
           set({ error: `Failed to create file: ${error}` });
@@ -169,10 +197,11 @@ export const use_file_explorer_store = create<FileExplorerStore>()(
         set({ is_loading: true, error: null });
         
         try {
+          const fs = getFileSystemService();
           const folder_path = `${path}/${name}`;
-          // Create folder by creating a temporary file and then removing it
+          // Create folder by creating a .gitkeep file
           // This ensures the directory structure exists
-          await invoke('create_file', { filePath: `${folder_path}/.gitkeep`, content: '' });
+          await fs.createFile(`${folder_path}/.gitkeep`, '');
           get().refresh_directory(path);
         } catch (error) {
           set({ error: `Failed to create folder: ${error}` });
@@ -185,8 +214,10 @@ export const use_file_explorer_store = create<FileExplorerStore>()(
         set({ is_loading: true, error: null });
         
         try {
+          const fs = getFileSystemService();
+          
           for (const path of paths) {
-            await invoke('delete_file', { filePath: path });
+            await fs.deleteFile(path);
           }
           
           const { current_directory } = get();
@@ -203,10 +234,11 @@ export const use_file_explorer_store = create<FileExplorerStore>()(
         set({ is_loading: true, error: null });
         
         try {
+          const fs = getFileSystemService();
           const directory = old_path.substring(0, old_path.lastIndexOf('/'));
           const new_path = `${directory}/${new_name}`;
           
-          await invoke('rename_file', { oldPath: old_path, newPath: new_path });
+          await fs.rename(old_path, new_path);
           
           const { current_directory } = get();
           get().refresh_directory(current_directory);
@@ -247,10 +279,12 @@ export const use_file_explorer_store = create<FileExplorerStore>()(
             const file_name = source_path.split('/').pop() || '';
             const dest_path = `${destination_path}/${file_name}`;
             
+            const fs = getFileSystemService();
+            
             if (clipboard.operation === 'copy') {
-              await invoke('copy_file', { sourcePath: source_path, destPath: dest_path });
+              await fs.copy(source_path, dest_path);
             } else if (clipboard.operation === 'cut') {
-              await invoke('rename_file', { oldPath: source_path, newPath: dest_path });
+              await fs.rename(source_path, dest_path);
             }
           }
           
@@ -324,7 +358,8 @@ export const use_file_explorer_store = create<FileExplorerStore>()(
               continue;
             }
             
-            await invoke('rename_file', { oldPath: source_path, newPath: dest_path });
+            const fs = getFileSystemService();
+            await fs.rename(source_path, dest_path);
           }
           
           // Clear drag state
@@ -353,6 +388,7 @@ export const use_file_explorer_store = create<FileExplorerStore>()(
     }),
     {
       name: 'forge-moi-file-explorer',
+      storage: getStorage(),
       partialize: (state) => ({
         favorites: state.favorites,
         view_mode: state.view_mode,

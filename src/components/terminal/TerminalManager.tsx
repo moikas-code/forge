@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useMemo, useCallback } from 'react';
 import { Plus, X } from 'lucide-react';
 import { useTerminalStore } from '@/stores/terminalStore';
-import { Terminal } from './Terminal';
+import { ElectronTerminal as Terminal } from './ElectronTerminal';
 import { TerminalToolbar } from './TerminalToolbar';
 import { TabStatusIndicator } from './TerminalStatusIndicator';
 import { Button } from '@/components/ui/button';

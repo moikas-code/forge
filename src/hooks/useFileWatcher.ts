@@ -1,6 +1,6 @@
 import { useEffect, useCallback, useRef, useMemo } from 'react';
-import { invoke } from '@tauri-apps/api/core';
-import { listen } from '@tauri-apps/api/event';
+import { getFileSystemService } from '@/services/electron/filesystem';
+import type { FileChangeEvent as ElectronFileChangeEvent } from '@/services/electron/index';
 import { useLayoutStore } from '@/stores/layoutStore';
 import { useEditorStore } from '@/stores/editorStore';
 
@@ -74,17 +74,29 @@ export function useFileWatcher(options: FileWatcherOptions = {}) {
     try {
       if (watchedFiles.current.has(filePath)) return;
       
-      await invoke('watch_file', { filePath });
+      const fs = getFileSystemService();
+      await fs.watchFile(filePath, (event: ElectronFileChangeEvent) => {
+        // Convert Electron event to our FileChangeEvent format
+        const fileChangeEvent: FileChangeEvent = {
+          path: event.path,
+          change_type: event.type === 'change' ? 'modified' : 
+                       event.type === 'rename' ? 'renamed' : 
+                       event.type === 'delete' ? 'deleted' : 'modified',
+          timestamp: Date.now()
+        };
+        handleFileChange(fileChangeEvent);
+      });
       watchedFiles.current.add(filePath);
     } catch (error) {
       console.error('Failed to watch file:', error);
       show_file_change_notification(`Failed to watch file: ${filePath}`, 'error');
     }
-  }, [show_file_change_notification]);
+  }, [show_file_change_notification, handleFileChange]);
 
   const unwatch_file = useCallback(async (filePath: string) => {
     try {
-      await invoke('unwatch_file', { filePath });
+      const fs = getFileSystemService();
+      await fs.unwatchFile(filePath);
       watchedFiles.current.delete(filePath);
     } catch (error) {
       console.error('Failed to unwatch file:', error);
@@ -115,8 +127,8 @@ export function useFileWatcher(options: FileWatcherOptions = {}) {
         } else {
           // Auto-reload the file
           try {
-            const { readTextFile } = await import('@tauri-apps/plugin-fs');
-            const newContent = await readTextFile(path);
+            const fs = getFileSystemService();
+            const newContent = await fs.readFile(path);
             
             affectedTabs.forEach(tab => {
               setEditorState(tab.id, { content: newContent });
@@ -166,27 +178,8 @@ export function useFileWatcher(options: FileWatcherOptions = {}) {
     onFileChanged?.(event);
   }, [tabs, getEditorState, setEditorState, updateTab, show_file_change_notification, onFileChanged, onFileDeleted, onFileRenamed]);
 
-  // Set up event listener for file changes
-  useEffect(() => {
-    const setupListener = async () => {
-      try {
-        const unlisten = await listen<FileChangeEvent>('file-changed', (event) => {
-          handleFileChange(event.payload);
-        });
-        unlistenRef.current = unlisten;
-      } catch (error) {
-        console.error('Failed to set up file change listener:', error);
-      }
-    };
-
-    setupListener();
-
-    return () => {
-      if (unlistenRef.current) {
-        unlistenRef.current();
-      }
-    };
-  }, [handleFileChange]);
+  // Note: With Electron filesystem service, file watching is handled per-file
+  // So we don't need a global event listener like with Tauri
 
   // Watch files for open editor tabs
   useEffect(() => {

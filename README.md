@@ -1,24 +1,38 @@
 # Forge MOI - AI-Powered Multi-Modal Development Studio
 
-A powerful desktop application combining development tools with AI-powered creative features, built with Tauri, React, and Langchain.
+A powerful desktop application combining development tools with AI-powered creative features, built with **Electron**, React, and Langchain.
+
+**🎉 MIGRATION COMPLETE**: Successfully migrated from Tauri to Electron for native browser embedding!
 
 ## 🚀 Features
 
 ### Core Tools (Available in Both Modes)
-- **Web Browser**: Full-featured browser with bookmarks, history, and developer tools
+- **🌐 Native Web Browser**: **Electron BrowserView** for true native embedding
   - Navigate any website with smart URL/search detection
-  - Bookmark management with folders
-  - Browsing history tracking
-  - DevTools integration
+  - **NO IFRAME LIMITATIONS** - Full CSP and X-Frame-Options support
+  - Embedded directly within app window (not separate windows!)
+  - Full DevTools integration
   - Multiple viewport presets (mobile, tablet, desktop)
   - Screenshot and screen recording
-  - Console output capture
+  - Console output capture and real-time monitoring
 
 ### Developer Mode
-- **Integrated Terminal**: Full-featured terminal with xterm.js
-- **Code Editor**: Monaco-based editor with syntax highlighting
-- **File Explorer**: Tree-view file browser with drag-and-drop
-- **AI Code Assistant**: Powered by Langchain for intelligent code help
+- **💻 Integrated Terminal**: Full-featured terminal with xterm.js + node-pty
+  - Multi-shell support (bash, PowerShell, cmd, sh)
+  - SSH connection management
+  - Session persistence and restoration
+  - Real-time output streaming
+- **📝 Code Editor**: Monaco-based editor with advanced features
+  - Multi-tab editing with unsaved changes tracking
+  - Syntax highlighting for all major languages
+  - IntelliSense and code completion
+  - File watching and auto-reload
+- **📁 File Explorer**: Advanced file management
+  - Tree-view browser with drag-and-drop operations
+  - File search and filtering
+  - Context menus for file operations
+  - Backup and restore functionality
+- **🤖 AI Code Assistant**: Powered by Langchain for intelligent code help
 
 ### Studio Mode  
 - **Image Generation**: Create images with fal.ai (FLUX) and OpenAI (DALL-E)
@@ -28,17 +42,19 @@ A powerful desktop application combining development tools with AI-powered creat
 
 ## 🛠️ Tech Stack
 
-- **Frontend**: React + TypeScript + Tailwind CSS + shadcn/ui
-- **Desktop**: Tauri (Rust)
+- **Frontend**: React 18 + Next.js + TypeScript + Tailwind CSS v4 + shadcn/ui
+- **Desktop**: **Electron** (migrated from Tauri for native BrowserView!)
+- **Terminal**: xterm.js + node-pty
+- **Code Editor**: Monaco Editor
 - **AI Integration**: Langchain + OpenAI + fal.ai
-- **State Management**: Zustand
-- **Build Tool**: Vite + Bun
+- **State Management**: Zustand + electron-store
+- **Build Tool**: Bun
 
 ## 📋 Prerequisites
 
 - [Bun](https://bun.sh/) (latest version)
-- [Rust](https://www.rust-lang.org/) (for Tauri)
 - [Node.js](https://nodejs.org/) (v18+)
+- ~~[Rust](https://www.rust-lang.org/)~~ (No longer needed after Electron migration!)
 
 ## 🔧 Installation
 
@@ -50,11 +66,20 @@ cd forge-moi
 # Install dependencies
 bun install
 
-# Run in development mode
-bun run tauri dev
+# Run Next.js dev server (required for Electron)
+bun run dev
+
+# In another terminal, run Electron app
+bun run electron:dev
+
+# Or run both together (recommended)
+bun run dev && bun run electron:dev
 
 # Build for production
-bun run tauri build
+bun run electron:build
+
+# Create distribution packages
+bun run electron:dist
 ```
 
 ## 🔐 API Configuration
@@ -62,11 +87,13 @@ bun run tauri build
 Create a `.env.local` file in the root directory:
 
 ```env
-# Your API keys (stored securely in Tauri backend)
-VITE_OPENAI_API_KEY=your_openai_key
-VITE_FAL_API_KEY=your_fal_ai_key
-VITE_STUDIO_API_KEY=your_studio_api_key
+# Your API keys (stored securely in Electron main process)
+OPENAI_API_KEY=your_openai_key
+FAL_API_KEY=your_fal_ai_key
+STUDIO_API_KEY=your_studio_api_key
 ```
+
+**Security Note**: API keys are now stored in the Electron main process (not the renderer) for enhanced security.
 
 ## 📚 Documentation
 
@@ -82,6 +109,8 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## 🙏 Acknowledgments
 
-- Built with [Tauri](https://tauri.app/)
+- Built with [Electron](https://electronjs.org/) (migrated from Tauri)
 - UI components from [shadcn/ui](https://ui.shadcn.com/)
+- Terminal powered by [xterm.js](https://xtermjs.org/) + [node-pty](https://github.com/microsoft/node-pty)
+- Code editor powered by [Monaco Editor](https://microsoft.github.io/monaco-editor/)
 - AI powered by [Langchain](https://langchain.com/), [OpenAI](https://openai.com/), and [fal.ai](https://fal.ai/)

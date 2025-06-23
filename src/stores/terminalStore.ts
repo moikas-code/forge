@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { getStorage } from '@/lib/zustand-electron-storage';
 
 export type ShellType = 'bash' | 'zsh' | 'fish' | 'powershell' | 'cmd' | 'custom';
 export type TerminalStatus = 'idle' | 'running' | 'error' | 'exited';
@@ -376,6 +377,7 @@ export const useTerminalStore = create<TerminalState>()(
     }),
     {
       name: 'forge-moi-terminal-store',
+      storage: getStorage(),
       partialize: (state) => ({
         // Only persist essential data, not the entire output buffer
         sessions: state.sessions.map(s => ({

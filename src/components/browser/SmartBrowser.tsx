@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { open } from '@tauri-apps/plugin-shell';
+import { getSystemService } from '@/services/electron/system';
 import { 
   RefreshCw, 
   ExternalLink, 
@@ -161,7 +161,8 @@ export function SmartBrowser({ url: initialUrl, className }: SmartBrowserProps) 
   const handleOpenExternal = async () => {
     if (url) {
       try {
-        await open(url);
+        const systemService = getSystemService();
+        await systemService.openExternal(url);
       } catch (err) {
         console.error('Failed to open external URL:', err);
         setError('Failed to open URL in external browser');
