@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use tauri::{AppHandle, Manager, WebviewUrl, WebviewWindowBuilder};
+use tauri::{AppHandle, Manager, WebviewUrl, WebviewWindowBuilder, PhysicalPosition, PhysicalSize};
 use std::sync::Mutex;
 use std::collections::HashMap;
 
@@ -344,4 +344,188 @@ pub fn get_viewport_presets() -> Vec<ViewportPreset> {
 #[tauri::command]
 pub async fn get_browser_viewport_presets() -> Result<Vec<ViewportPreset>, String> {
     Ok(get_viewport_presets())
+}
+
+// Embedded browser state tracking
+pub struct EmbeddedBrowserState {
+    pub url: String,
+    pub can_go_back: bool,
+    pub can_go_forward: bool,
+    pub window_label: String,
+}
+
+pub struct EmbeddedBrowserManager {
+    browsers: Mutex<HashMap<String, EmbeddedBrowserState>>,
+}
+
+impl EmbeddedBrowserManager {
+    pub fn new() -> Self {
+        Self {
+            browsers: Mutex::new(HashMap::new()),
+        }
+    }
+}
+
+#[tauri::command]
+pub async fn create_embedded_browser(
+    app: AppHandle,
+    browser_id: String,
+    url: String,
+    x: i32,
+    y: i32,
+    width: u32,
+    height: u32,
+) -> Result<(), String> {
+    // For now, we'll create a borderless window that appears embedded
+    // True child webviews require platform-specific implementation
+    
+    let window_label = format!("browser-embed-{}", browser_id);
+    
+    // Create a borderless window positioned within the main window
+    let _browser_window = WebviewWindowBuilder::new(
+        &app,
+        &window_label,
+        WebviewUrl::External(url.parse().map_err(|e: url::ParseError| e.to_string())?),
+    )
+    .title("")
+    .decorations(false)
+    .always_on_top(true)
+    .skip_taskbar(true)
+    .position(x as f64, y as f64)
+    .inner_size(width as f64, height as f64)
+    .resizable(false)
+    .build()
+    .map_err(|e| format!("Failed to create browser window: {}", e))?;
+    
+    // Store the browser state
+    if let Some(browser_manager) = app.try_state::<EmbeddedBrowserManager>() {
+        let mut browsers = browser_manager.browsers.lock().unwrap();
+        browsers.insert(browser_id, EmbeddedBrowserState {
+            url: url.clone(),
+            can_go_back: false,
+            can_go_forward: false,
+            window_label,
+        });
+    }
+    
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn navigate_embedded_browser(
+    app: AppHandle,
+    browser_id: String,
+    url: String,
+) -> Result<(), String> {
+    if let Some(browser_manager) = app.try_state::<EmbeddedBrowserManager>() {
+        let mut browsers = browser_manager.browsers.lock().unwrap();
+        if let Some(browser_state) = browsers.get_mut(&browser_id) {
+            // Get the browser window
+            if let Some(browser_window) = app.get_webview_window(&browser_state.window_label) {
+                // Navigate using JavaScript
+                browser_window.eval(&format!(r#"window.location.href = "{}""#, url))
+                    .map_err(|e| format!("Failed to navigate: {}", e))?;
+                
+                // Update state
+                browser_state.url = url;
+                Ok(())
+            } else {
+                Err("Browser window not found".to_string())
+            }
+        } else {
+            Err("Browser not found".to_string())
+        }
+    } else {
+        Err("Browser manager not initialized".to_string())
+    }
+}
+
+#[tauri::command]
+pub async fn resize_embedded_browser(
+    app: AppHandle,
+    browser_id: String,
+    x: i32,
+    y: i32,
+    width: u32,
+    height: u32,
+) -> Result<(), String> {
+    if let Some(browser_manager) = app.try_state::<EmbeddedBrowserManager>() {
+        let browsers = browser_manager.browsers.lock().unwrap();
+        if let Some(browser_state) = browsers.get(&browser_id) {
+            // Get the browser window
+            if let Some(browser_window) = app.get_webview_window(&browser_state.window_label) {
+                // Set position and size
+                browser_window.set_position(PhysicalPosition::new(x, y))
+                    .map_err(|e| format!("Failed to set position: {}", e))?;
+                browser_window.set_size(PhysicalSize::new(width, height))
+                    .map_err(|e| format!("Failed to set size: {}", e))?;
+                Ok(())
+            } else {
+                Err("Browser window not found".to_string())
+            }
+        } else {
+            Err("Browser not found".to_string())
+        }
+    } else {
+        Err("Browser manager not initialized".to_string())
+    }
+}
+
+#[tauri::command]
+pub async fn close_embedded_browser(
+    app: AppHandle,
+    browser_id: String,
+) -> Result<(), String> {
+    if let Some(browser_manager) = app.try_state::<EmbeddedBrowserManager>() {
+        let mut browsers = browser_manager.browsers.lock().unwrap();
+        if let Some(browser_state) = browsers.remove(&browser_id) {
+            // Get and close the browser window
+            if let Some(browser_window) = app.get_webview_window(&browser_state.window_label) {
+                browser_window.close()
+                    .map_err(|e| format!("Failed to close browser window: {}", e))?;
+            }
+            Ok(())
+        } else {
+            Err("Browser not found".to_string())
+        }
+    } else {
+        Err("Browser manager not initialized".to_string())
+    }
+}
+
+#[tauri::command]
+pub async fn get_browser_navigation_state(
+    app: AppHandle,
+    browser_id: String,
+) -> Result<serde_json::Value, String> {
+    if let Some(browser_manager) = app.try_state::<EmbeddedBrowserManager>() {
+        let browsers = browser_manager.browsers.lock().unwrap();
+        if let Some(browser_state) = browsers.get(&browser_id) {
+            Ok(serde_json::json!({
+                "canGoBack": browser_state.can_go_back,
+                "canGoForward": browser_state.can_go_forward,
+            }))
+        } else {
+            Err("Browser not found".to_string())
+        }
+    } else {
+        Err("Browser manager not initialized".to_string())
+    }
+}
+
+#[tauri::command]
+pub async fn get_browser_url(
+    app: AppHandle,
+    browser_id: String,
+) -> Result<String, String> {
+    if let Some(browser_manager) = app.try_state::<EmbeddedBrowserManager>() {
+        let browsers = browser_manager.browsers.lock().unwrap();
+        if let Some(browser_state) = browsers.get(&browser_id) {
+            Ok(browser_state.url.clone())
+        } else {
+            Err("Browser not found".to_string())
+        }
+    } else {
+        Err("Browser manager not initialized".to_string())
+    }
 }

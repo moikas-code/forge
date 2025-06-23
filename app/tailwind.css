@@ -1,6 +1,7 @@
 @import "tailwindcss";
+@import "../src/themes/cyberpunk/colors.css";
 
-/* Minimal styles for macOS native look */
+/* Cyberpunk UI Styles for Forge MOI */
 
 /* Ensure the app takes full height */
 #root {
@@ -39,67 +40,251 @@ button {
 }
 
 @theme {
-  /* macOS-inspired light theme */
-  --color-background: hsl(0 0% 100%);
-  --color-foreground: hsl(0 0% 20%);
-  --color-card: hsl(0 0% 100%);
-  --color-card-foreground: hsl(0 0% 20%);
-  --color-popover: hsl(0 0% 100%);
-  --color-popover-foreground: hsl(0 0% 20%);
-  --color-primary: hsl(211 100% 50%);
-  --color-primary-foreground: hsl(0 0% 100%);
-  --color-secondary: hsl(0 0% 96%);
-  --color-secondary-foreground: hsl(0 0% 20%);
-  --color-muted: hsl(0 0% 96%);
-  --color-muted-foreground: hsl(0 0% 45%);
-  --color-accent: hsl(211 100% 50%);
-  --color-accent-foreground: hsl(0 0% 100%);
-  --color-destructive: hsl(0 84% 60%);
-  --color-destructive-foreground: hsl(0 0% 100%);
-  --color-border: hsl(0 0% 90%);
-  --color-input: hsl(0 0% 90%);
-  --color-ring: hsl(211 100% 50%);
-  
-  /* macOS specific */
-  --color-sidebar-background: hsl(0 0% 97%);
+  /* Cyberpunk theme configuration */
   --titlebar-height: 38px;
   --traffic-light-width: 72px;
-}
-
-.dark {
-  /* macOS-inspired dark theme */
-  --color-background: hsl(0 0% 13%);
-  --color-foreground: hsl(0 0% 93%);
-  --color-card: hsl(0 0% 15%);
-  --color-card-foreground: hsl(0 0% 93%);
-  --color-popover: hsl(0 0% 15%);
-  --color-popover-foreground: hsl(0 0% 93%);
-  --color-primary: hsl(211 100% 50%);
-  --color-primary-foreground: hsl(0 0% 100%);
-  --color-secondary: hsl(0 0% 18%);
-  --color-secondary-foreground: hsl(0 0% 93%);
-  --color-muted: hsl(0 0% 18%);
-  --color-muted-foreground: hsl(0 0% 60%);
-  --color-accent: hsl(211 100% 50%);
-  --color-accent-foreground: hsl(0 0% 100%);
-  --color-destructive: hsl(0 62% 30%);
-  --color-destructive-foreground: hsl(0 0% 100%);
-  --color-border: hsl(0 0% 20%);
-  --color-input: hsl(0 0% 20%);
-  --color-ring: hsl(211 100% 50%);
   
-  /* macOS specific */
-  --color-sidebar-background: hsl(0 0% 11%);
+  /* Import cyberpunk colors - defined in colors.css */
+  /* Dark mode is default, light mode class overrides */
 }
 
-/* System font stack for macOS feel */
+/* Cyberpunk font stack */
 * {
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", Arial, sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
 }
 
-/* Smooth animations throughout */
+code, pre, .font-mono {
+  font-family: 'JetBrains Mono', 'SF Mono', Monaco, Consolas, monospace;
+}
+
+h1, h2, h3, .font-display {
+  font-family: 'Orbitron', 'Inter', sans-serif;
+}
+
+/* Smooth animations with cyberpunk timing */
 *, *::before, *::after {
-  transition-timing-function: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Cyberpunk glow effects */
+.glow-purple {
+  box-shadow: var(--glow-purple);
+}
+
+.glow-jade {
+  box-shadow: var(--glow-jade);
+}
+
+.glow-purple-hover:hover {
+  box-shadow: var(--glow-purple);
+  transition: box-shadow 0.3s ease;
+}
+
+.glow-jade-hover:hover {
+  box-shadow: var(--glow-jade);
+  transition: box-shadow 0.3s ease;
+}
+
+/* Animated glow effects */
+@keyframes pulse-purple {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(147, 51, 234, 0.6);
+  }
+  50% {
+    box-shadow: 0 0 40px rgba(147, 51, 234, 0.8), 0 0 60px rgba(147, 51, 234, 0.4);
+  }
+}
+
+@keyframes pulse-jade {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(16, 185, 129, 0.6);
+  }
+  50% {
+    box-shadow: 0 0 40px rgba(16, 185, 129, 0.8), 0 0 60px rgba(16, 185, 129, 0.4);
+  }
+}
+
+.pulse-purple {
+  animation: pulse-purple 2s infinite;
+}
+
+.pulse-jade {
+  animation: pulse-jade 2s infinite;
+}
+
+/* Gradient animations */
+.gradient-animate {
+  background-size: 200% 200%;
+  animation: gradient-shift 3s ease infinite;
+}
+
+@keyframes gradient-shift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* Gradient text effect */
+.gradient-text {
+  background: var(--gradient-purple-jade);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.gradient-text-animate {
+  background: linear-gradient(
+    to right,
+    var(--color-cyber-purple),
+    var(--color-cyber-jade),
+    var(--color-cyber-purple)
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: gradient-shift 3s linear infinite;
+}
+
+/* Scan lines effect */
+@keyframes scan-lines {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(100%); }
+}
+
+.scan-lines::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 100%;
+  background: linear-gradient(
+    transparent 0%,
+    rgba(147, 51, 234, 0.03) 50%,
+    transparent 100%
+  );
+  animation: scan-lines 8s linear infinite;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Glitch effect */
+@keyframes glitch {
+  0%, 100% { 
+    transform: translate(0);
+    filter: hue-rotate(0deg);
+  }
+  20% { 
+    transform: translate(-2px, 2px);
+    filter: hue-rotate(90deg);
+  }
+  40% { 
+    transform: translate(-2px, -2px);
+    filter: hue-rotate(180deg);
+  }
+  60% { 
+    transform: translate(2px, 2px);
+    filter: hue-rotate(270deg);
+  }
+  80% { 
+    transform: translate(2px, -2px);
+    filter: hue-rotate(360deg);
+  }
+}
+
+.glitch:hover {
+  animation: glitch 0.3s ease-in-out;
+}
+
+/* Glitch text effect */
+.glitch-text {
+  position: relative;
+  display: inline-block;
+}
+
+.glitch-text::before,
+.glitch-text::after {
+  content: attr(data-text);
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+}
+
+.glitch-text:hover::before {
+  animation: glitch-1 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+  color: var(--color-cyber-purple);
+  z-index: -1;
+}
+
+.glitch-text:hover::after {
+  animation: glitch-2 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+  color: var(--color-cyber-jade);
+  z-index: -2;
+}
+
+@keyframes glitch-1 {
+  0% {
+    opacity: 0;
+    transform: translate(0);
+  }
+  20% {
+    opacity: 1;
+    transform: translate(-2px, -2px);
+  }
+  40% {
+    opacity: 1;
+    transform: translate(-2px, 2px);
+  }
+  60% {
+    opacity: 1;
+    transform: translate(2px, -2px);
+  }
+  80% {
+    opacity: 1;
+    transform: translate(2px, 2px);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(0);
+  }
+}
+
+@keyframes glitch-2 {
+  0% {
+    opacity: 0;
+    transform: translate(0);
+  }
+  20% {
+    opacity: 1;
+    transform: translate(2px, 2px);
+  }
+  40% {
+    opacity: 1;
+    transform: translate(2px, -2px);
+  }
+  60% {
+    opacity: 1;
+    transform: translate(-2px, 2px);
+  }
+  80% {
+    opacity: 1;
+    transform: translate(-2px, -2px);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(0);
+  }
+}
+
+/* Shimmer effect */
+@keyframes shimmer {
+  to {
+    transform: translateX(100%);
+  }
 }
 
 /* Base styles */
@@ -128,12 +313,29 @@ body {
   -webkit-app-region: no-drag;
 }
 
-/* macOS-style sidebar */
+/* Cyberpunk sidebar */
 .sidebar {
   background-color: var(--color-sidebar-background);
-  border-right: 1px solid color-mix(in srgb, var(--color-border) 50%, transparent);
-  backdrop-filter: blur(50px);
-  -webkit-backdrop-filter: blur(50px);
+  border-right: 1px solid var(--color-cyber-purple);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  position: relative;
+}
+
+.sidebar::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: -1px;
+  bottom: 0;
+  width: 1px;
+  background: linear-gradient(to bottom, 
+    transparent 0%, 
+    var(--color-cyber-purple) 20%,
+    var(--color-cyber-purple) 80%,
+    transparent 100%
+  );
+  box-shadow: 0 0 10px var(--color-cyber-purple);
 }
 
 /* Vibrancy effect for panels */
@@ -143,37 +345,62 @@ body {
   background-color: color-mix(in srgb, var(--color-background) 70%, transparent);
 }
 
-/* macOS-style buttons */
+/* Cyberpunk buttons */
 .btn-primary {
-  background-color: var(--color-primary);
+  background: var(--gradient-purple-jade);
   color: var(--color-primary-foreground);
-  border-radius: 0.375rem;
-  padding: 0.375rem 0.75rem;
+  border-radius: 0.25rem;
+  padding: 0.5rem 1rem;
   font-size: 0.875rem;
-  font-weight: 500;
-  transition: all 75ms;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-primary::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+  transition: left 0.5s ease;
+}
+
+.btn-primary:hover::before {
+  left: 100%;
 }
 
 .btn-primary:hover {
-  opacity: 0.9;
+  box-shadow: var(--glow-purple);
+  transform: translateY(-2px);
 }
 
 .btn-primary:active {
-  transform: scale(0.98);
+  transform: translateY(0);
 }
 
 .btn-secondary {
-  background-color: var(--color-secondary);
-  color: var(--color-secondary-foreground);
-  border-radius: 0.375rem;
-  padding: 0.375rem 0.75rem;
+  background-color: transparent;
+  color: var(--color-cyber-purple);
+  border: 1px solid var(--color-cyber-purple);
+  border-radius: 0.25rem;
+  padding: 0.5rem 1rem;
   font-size: 0.875rem;
   font-weight: 500;
-  transition: all 75ms;
+  transition: all 0.3s ease;
+  position: relative;
 }
 
 .btn-secondary:hover {
-  background-color: color-mix(in srgb, var(--color-secondary) 80%, transparent);
+  background-color: var(--color-cyber-purple);
+  color: var(--color-cyber-black);
+  box-shadow: var(--glow-purple);
+  border-color: var(--color-cyber-purple-glow);
 }
 
 .btn-secondary:active {

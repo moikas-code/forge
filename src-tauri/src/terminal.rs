@@ -72,6 +72,7 @@ impl TerminalManager {
         
         // Get shell command first (before options is partially moved)
         let shell = self.get_shell_command(&options);
+        println!("[Terminal] Using shell: {}", shell);
         
         // Set terminal size
         let size = options.size.unwrap_or(TerminalSize { rows: 24, cols: 80 });
@@ -88,7 +89,15 @@ impl TerminalManager {
             .map_err(|e| format!("Failed to create PTY: {}", e))?;
         
         // Build command
-        let mut cmd = CommandBuilder::new(&shell);
+        let mut cmd = if shell.contains("bash") {
+            // For bash, use interactive login shell for proper PTY interaction
+            let mut cmd = CommandBuilder::new(&shell);
+            cmd.arg("-i"); // interactive shell (important for PTY)
+            cmd.arg("-l"); // login shell (load profile)
+            cmd
+        } else {
+            CommandBuilder::new(&shell)
+        };
         
         // Set working directory if provided
         if let Some(cwd) = &options.cwd {
@@ -96,35 +105,48 @@ impl TerminalManager {
         }
         
         // Set environment variables if provided
+        let mut has_path = false;
         if let Some(env) = &options.env {
             for (key, value) in env {
                 cmd.env(key, value);
+                if key == "PATH" {
+                    has_path = true;
+                }
+            }
+        }
+        
+        // Ensure TERM is set for proper terminal emulation
+        cmd.env("TERM", "xterm-256color");
+        
+        // Ensure PATH is set if not already provided
+        if !has_path {
+            if let Ok(path) = std::env::var("PATH") {
+                cmd.env("PATH", path);
             }
         }
         
         // Spawn the shell process
+        println!("[Terminal] Spawning shell process...");
         let child = pty_pair
             .slave
             .spawn_command(cmd)
             .map_err(|e| format!("Failed to spawn shell: {}", e))?;
+        println!("[Terminal] Shell process spawned successfully");
         
         // Create shutdown channel
         let (shutdown_tx, shutdown_rx) = mpsc::channel::<()>(1);
         
+        let pty_master = Arc::new(Mutex::new(pty_pair.master));
+        
         // Clone master for reading
-        let reader = pty_pair
-            .master
+        let reader = pty_master.lock().await
             .try_clone_reader()
             .map_err(|e| format!("Failed to clone reader: {}", e))?;
         
-        // Clone master for writing
-        let writer = pty_pair
-            .master
+        // Take writer from master
+        let writer = pty_master.lock().await
             .take_writer()
             .map_err(|e| format!("Failed to take writer: {}", e))?;
-        
-        // Keep reference to master for resizing
-        let pty_master = Arc::new(Mutex::new(pty_pair.master));
         
         // Create terminal instance
         let terminal = Terminal {
@@ -150,6 +172,10 @@ impl TerminalManager {
         terminal_id: String,
         data: Vec<u8>,
     ) -> Result<(), String> {
+        // Debug logging
+        println!("[TerminalManager] write_to_terminal called - terminal_id: {}, data_len: {}, data: {:?}", 
+                 terminal_id, data.len(), String::from_utf8_lossy(&data));
+        
         let terminals = self.terminals.read().await;
         
         if let Some(terminal_arc) = terminals.get(&terminal_id) {
@@ -160,6 +186,7 @@ impl TerminalManager {
             terminal.writer
                 .flush()
                 .map_err(|e| format!("Failed to flush terminal: {}", e))?;
+            println!("[TerminalManager] Successfully wrote {} bytes to terminal", data.len());
             Ok(())
         } else {
             Err(format!("Terminal {} not found", terminal_id))
@@ -245,17 +272,23 @@ impl TerminalManager {
         
         #[cfg(not(target_os = "windows"))]
         {
-            // Try to get shell from environment
-            std::env::var("SHELL").unwrap_or_else(|_| {
-                // Fall back to common shells
-                if std::path::Path::new("/bin/bash").exists() {
-                    "/bin/bash".to_string()
-                } else if std::path::Path::new("/bin/sh").exists() {
-                    "/bin/sh".to_string()
-                } else {
-                    "sh".to_string()
-                }
-            })
+            // Always prefer bash if available
+            if std::path::Path::new("/bin/bash").exists() {
+                "/bin/bash".to_string()
+            } else if std::path::Path::new("/usr/bin/bash").exists() {
+                "/usr/bin/bash".to_string()
+            } else if std::path::Path::new("/usr/local/bin/bash").exists() {
+                "/usr/local/bin/bash".to_string()
+            } else {
+                // Fall back to SHELL environment variable or sh
+                std::env::var("SHELL").unwrap_or_else(|_| {
+                    if std::path::Path::new("/bin/sh").exists() {
+                        "/bin/sh".to_string()
+                    } else {
+                        "sh".to_string()
+                    }
+                })
+            }
         }
     }
     
@@ -263,7 +296,7 @@ impl TerminalManager {
     async fn start_reader_task(
         &self,
         terminal_id: String,
-        mut reader: Box<dyn Read + Send>,
+        reader: Box<dyn Read + Send>,
         mut shutdown_rx: mpsc::Receiver<()>,
     ) {
         let event_sender = self.event_sender.clone();
@@ -273,6 +306,7 @@ impl TerminalManager {
         tokio::task::spawn_blocking(move || {
             let runtime = tokio::runtime::Handle::current();
             let mut buffer = vec![0u8; 4096];
+            let mut reader = reader;
             
             loop {
                 // Check for shutdown signal
@@ -282,7 +316,8 @@ impl TerminalManager {
                     Err(mpsc::error::TryRecvError::Empty) => {}
                 }
                 
-                // Read from terminal with timeout
+                // Try to read from terminal
+                // Use a small buffer and yield if no data is available
                 match reader.read(&mut buffer) {
                     Ok(0) => {
                         // EOF - terminal closed
@@ -298,12 +333,21 @@ impl TerminalManager {
                     Ok(n) => {
                         // Send output event
                         let data = buffer[..n].to_vec();
+                        let text = String::from_utf8_lossy(&data);
+                        println!("[TerminalReader] Read {} bytes from PTY", n);
+                        println!("[TerminalReader] Text content: {:?}", text);
+                        println!("[TerminalReader] Raw bytes: {:?}", data);
                         runtime.block_on(async {
                             let sender = event_sender.lock().await;
-                            let _ = sender.send(TerminalEvent::Output {
+                            let send_result = sender.send(TerminalEvent::Output {
                                 terminal_id: terminal_id.clone(),
                                 data,
                             }).await;
+                            if let Err(e) = send_result {
+                                println!("[TerminalReader] Failed to send output event: {:?}", e);
+                            } else {
+                                println!("[TerminalReader] Successfully sent output event");
+                            }
                         });
                     }
                     Err(e) => {

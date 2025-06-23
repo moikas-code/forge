@@ -3,8 +3,7 @@
 import { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
-import { create_terminal_performance_manager, TerminalPerformanceManager, useTerminalPerformanceMetrics } from '@/utils/terminalPerformance';
-import { TerminalPerformanceIndicator } from './TerminalPerformanceIndicator';
+import { create_terminal_performance_manager, TerminalPerformanceManager } from '@/utils/terminalPerformance';
 import 'xterm/css/xterm.css';
 import './Terminal.css';
 import { get_theme_by_id } from '@/lib/terminal-themes';
@@ -22,8 +21,6 @@ interface TerminalProps {
   className?: string;
   terminalId?: string;
   actions?: TerminalActions;
-  show_performance_indicator?: boolean;
-  performance_debug?: boolean;
   pane_id?: string;
   theme_id?: string;
   show_window_chrome?: boolean;
@@ -36,8 +33,6 @@ export function Terminal({
   className, 
   terminalId, 
   actions,
-  show_performance_indicator = false,
-  performance_debug = false,
   pane_id,
   theme_id,
   show_window_chrome = false,
@@ -115,8 +110,6 @@ export function Terminal({
     };
   }, [pane_id]);
   
-  // Get performance metrics for display
-  const performance_metrics = useTerminalPerformanceMetrics(performance_manager_ref.current);
   const [selection_text, set_selection_text] = useState<string>('');
   const [feedback_message, set_feedback_message] = useState<string>('');
   const [feedback_type, set_feedback_type] = useState<'success' | 'error' | null>(null);
@@ -234,7 +227,7 @@ export function Terminal({
       
       // Initialize performance manager
       performance_manager_ref.current = create_terminal_performance_manager(terminal, {
-        debug: performance_debug,
+        debug: false,
         buffer: {
           max_lines: 10000,
           trim_threshold: 0.8,
@@ -294,7 +287,7 @@ export function Terminal({
         }
       };
       
-      let current_terminal_id: string | null = null;
+      let current_terminalId: string | null = null;
       
       const handle_paste = async () => {
         if (!terminal) return;
@@ -310,11 +303,11 @@ export function Terminal({
             return;
           }
           
-          if (text_to_paste && current_terminal_id) {
+          if (text_to_paste && current_terminalId) {
             // Send paste data to backend terminal
             const bytes = new TextEncoder().encode(text_to_paste);
             await invoke('write_to_terminal', {
-              terminal_id: current_terminal_id,
+              terminalId: current_terminalId,
               data: Array.from(bytes)
             });
             show_feedback('Pasted from clipboard', 'success');
@@ -447,14 +440,23 @@ export function Terminal({
         });
         
         set_terminal_id(response.terminal_id);
-        current_terminal_id = response.terminal_id;
+        current_terminalId = response.terminal_id;
         
         // Set up event listeners
         unlisten_output_ref.current = await listen<{ terminal_id: string; data: number[] }>(
           'terminal-output',
           (event) => {
+            console.log('[Terminal] Received terminal-output event:', {
+              terminal_id: event.payload.terminal_id,
+              data_length: event.payload.data?.length,
+              response_terminal_id: response.terminal_id,
+              has_xterm: !!xterm_ref.current
+            });
+            
             if (event.payload.terminal_id === response.terminal_id && xterm_ref.current) {
               const data = new Uint8Array(event.payload.data);
+              const text = new TextDecoder().decode(data);
+              console.log('[Terminal] Writing to terminal:', text);
               
               // Use performance manager for optimized output
               if (performance_manager_ref.current) {
@@ -490,17 +492,17 @@ export function Terminal({
             data: data,
             data_length: data.length,
             data_char_codes: data.split('').map(c => c.charCodeAt(0)),
-            current_terminal_id: current_terminal_id,
+            current_terminalId: current_terminalId,
             terminal_is_open: term.element !== null
           });
           
-          if (current_terminal_id) {
+          if (current_terminalId) {
             try {
               const bytes = new TextEncoder().encode(data);
               console.log('[Terminal] Sending bytes to backend:', Array.from(bytes));
               
               await invoke('write_to_terminal', {
-                terminal_id: current_terminal_id,
+                terminalId: current_terminalId,
                 data: Array.from(bytes)
               });
               console.log('[Terminal] Successfully sent to terminal backend');
@@ -514,10 +516,10 @@ export function Terminal({
         
         // Handle resize
         term.onResize(async ({ cols, rows }: { cols: number; rows: number }) => {
-          if (current_terminal_id) {
+          if (current_terminalId) {
             try {
               await invoke('resize_terminal', {
-                terminal_id: current_terminal_id,
+                terminalId: current_terminalId,
                 size: { rows, cols }
               });
             } catch (error) {
@@ -570,7 +572,7 @@ export function Terminal({
         
         // Close backend terminal
         if (terminal_id) {
-          invoke('close_terminal', { terminal_id: terminal_id }).catch(console.error);
+          invoke('close_terminal', { terminalId: terminal_id }).catch(console.error);
         }
         
         if (web_links_addon) {
@@ -633,19 +635,9 @@ export function Terminal({
         />
       )}
       
-      {/* Performance indicator */}
-      {show_performance_indicator && (
-        <div className="absolute top-2 left-2 z-10">
-          <TerminalPerformanceIndicator 
-            metrics={performance_metrics}
-            show_details={performance_debug}
-          />
-        </div>
-      )}
-      
       <div 
         ref={terminal_ref} 
-        className={`terminal-wrapper ${show_window_chrome ? 'flex-1' : ''}`}
+        className={`terminal-wrapper flex-1`}
         onClick={() => {
           // Ensure terminal gets focus when clicked
           if (xterm_ref.current) {

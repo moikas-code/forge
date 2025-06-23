@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Forge MOI is a multi-modal AI-powered development studio built with Tauri, React, TypeScript, and Langchain. It combines traditional development tools (terminal, code editor, file explorer, browser preview) with AI-powered creative features (image/video generation, 3D modeling).
+Forge MOI is a multi-modal AI-powered development studio built with Tauri, React, TypeScript, and Langchain. It combines traditional development tools (terminal, code editor, file explorer) with a full-featured web browser and AI-powered creative features (image/video generation, 3D modeling).
 
 ## Development Commands
 
@@ -62,8 +62,9 @@ bun run preview
    - `tauri-plugin-opener` - Opening external links
 
 4. **Two Modes**:
-   - **Developer Mode**: Terminal, code editor, file explorer, browser preview
+   - **Developer Mode**: Terminal, code editor, file explorer
    - **Studio Mode**: AI-powered image/video generation, 3D modeling
+   - **Shared Tools**: Full-featured web browser (available in both modes)
 
 ## Tauri Configuration Notes
 
@@ -83,14 +84,29 @@ All API communication happens through the Tauri backend for security.
 
 ## Current Status
 
-Day 1 of development is complete with:
-- Project initialization
-- Dependencies installed
-- macOS-style UI implemented
-- Basic layout structure
-- Tauri plugins configured
+Days 1-12 of development are complete with:
+- ✅ Project initialization with all dependencies
+- ✅ macOS-style UI with native window controls
+- ✅ Complete layout system with resizable split panes
+- ✅ Fully functional terminal with xterm.js
+- ✅ Monaco-based code editor with multi-tab support
+- ✅ File explorer with drag-and-drop and fuzzy search
+- ✅ Full-featured web browser with bookmarks and history
+- ✅ All Tauri plugins configured and integrated
 
-Next steps involve implementing the layout system with split panes and beginning work on the terminal component.
+## Browser Features
+
+The browser is now a full-featured web browser that includes:
+- Navigate to any website (not restricted to localhost)
+- Smart URL bar with search integration
+- Bookmarks management with persistent storage
+- Browsing history tracking
+- DevTools integration (WebView mode)
+- Multiple viewport presets for responsive testing
+- Screenshot and screen recording capabilities
+- Console output capture
+- Hot reload for local development
+- Both iframe and native WebView modes
 
 ## Documentation Links
 - Tauri Documentation: https://v2.tauri.app/start/

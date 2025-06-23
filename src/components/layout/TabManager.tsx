@@ -5,6 +5,7 @@ import { useLayoutStore } from '@/stores/layoutStore';
 import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useTabAnnouncer } from '@/hooks/useAnnounce';
+import { cn } from '@/lib/utils';
 
 export function TabManager() {
   const { tabs, activeTabId, setActiveTab, removeTab } = useLayoutStore();
@@ -13,10 +14,10 @@ export function TabManager() {
   
   if (tabs.length === 0) {
     return (
-      <div className="h-[40px] flex items-center px-4 bg-background border-b border-border/50"
+      <div className="h-[40px] flex items-center px-4 bg-cyber-black border-b border-cyber-purple/30"
            role="tablist"
            aria-label="No tabs open">
-        <p className="text-sm text-muted-foreground">No tabs open</p>
+        <p className="text-sm text-cyber-gray-500">No tabs open</p>
       </div>
     );
   }
@@ -75,7 +76,7 @@ export function TabManager() {
   };
   
   return (
-    <div className="h-[40px] flex items-center bg-background border-b border-border/50 overflow-x-auto scrollbar-auto"
+    <div className="h-[40px] flex items-center bg-cyber-black border-b border-cyber-purple/30 overflow-x-auto scrollbar-auto"
          role="tablist"
          aria-label="Open tabs"
          ref={tab_list_ref}>
@@ -88,21 +89,39 @@ export function TabManager() {
             aria-selected={tab.id === activeTabId}
             aria-controls={`tabpanel-${tab.id}`}
             aria-describedby={`tabdesc-${tab.id}`}
-            className={`group flex items-center gap-2 px-3 py-1.5 border-r border-border/50 cursor-pointer transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+            className={cn(
+              "group flex items-center gap-2 px-4 py-2 border-r border-cyber-purple/20",
+              "cursor-pointer transition-all duration-200 relative",
+              "focus:outline-none focus:ring-2 focus:ring-cyber-purple focus:ring-offset-2",
               tab.id === activeTabId
-                ? 'bg-secondary/50 text-foreground'
-                : 'text-muted-foreground hover:text-foreground hover:bg-secondary/30'
-            }`}
+                ? "bg-cyber-purple/20 text-cyber-purple border-b-2 border-b-cyber-purple shadow-[inset_0_-2px_0_0_rgba(147,51,234,0.6)]"
+                : "text-cyber-gray-400 hover:text-cyber-purple hover:bg-cyber-purple/10"
+            )}
             onClick={() => handle_tab_click(tab.id)}
             onKeyDown={(e) => handle_tab_keyboard(e, tab.id)}
           >
-            <span className="text-sm whitespace-nowrap" id={`tabdesc-${tab.id}`}>
+            {/* Active tab glow */}
+            {tab.id === activeTabId && (
+              <div className="absolute inset-0 bg-gradient-to-b from-cyber-purple/10 to-transparent pointer-events-none" />
+            )}
+            
+            <span className={cn(
+              "text-sm whitespace-nowrap font-medium relative z-10",
+              tab.id === activeTabId && "text-white"
+            )} id={`tabdesc-${tab.id}`}>
               {tab.title}
             </span>
+            
             <Button
               variant="ghost"
               size="icon"
-              className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-secondary focus:opacity-100"
+              className={cn(
+                "h-4 w-4 transition-all duration-200 relative z-10",
+                "hover:bg-cyber-purple/30 hover:text-cyber-purple",
+                tab.id === activeTabId
+                  ? "opacity-60 hover:opacity-100"
+                  : "opacity-0 group-hover:opacity-60 hover:!opacity-100"
+              )}
               onClick={(e) => handle_tab_close(e, tab.id)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {

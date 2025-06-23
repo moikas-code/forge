@@ -1,0 +1,207 @@
+/* Cyberpunk Color Palette for Forge MOI */
+
+:root {
+  /* Primary Colors */
+  --color-cyber-black: #000000;
+  --color-cyber-black-light: #0A0A0A;
+  --color-cyber-black-soft: #141414;
+  
+  /* Purple Shades */
+  --color-cyber-purple: #9333EA;
+  --color-cyber-purple-light: #A855F7;
+  --color-cyber-purple-glow: #E879F9;
+  --color-cyber-purple-dark: #7E22CE;
+  
+  /* Jade Green Shades */
+  --color-cyber-jade: #10B981;
+  --color-cyber-jade-light: #34D399;
+  --color-cyber-jade-glow: #6EE7B7;
+  --color-cyber-jade-dark: #059669;
+  
+  /* Accent Colors */
+  --color-cyber-pink: #EC4899;
+  --color-cyber-blue: #3B82F6;
+  --color-cyber-yellow: #F59E0B;
+  --color-cyber-red: #EF4444;
+  
+  /* Neutral Colors */
+  --color-cyber-gray-50: #FAFAFA;
+  --color-cyber-gray-100: #F4F4F5;
+  --color-cyber-gray-200: #E4E4E7;
+  --color-cyber-gray-300: #D4D4D8;
+  --color-cyber-gray-400: #A1A1AA;
+  --color-cyber-gray-500: #71717A;
+  --color-cyber-gray-600: #52525B;
+  --color-cyber-gray-700: #3F3F46;
+  --color-cyber-gray-800: #27272A;
+  --color-cyber-gray-900: #18181B;
+  
+  /* Glow Effects */
+  --glow-purple: 0 0 20px rgba(147, 51, 234, 0.6), 0 0 40px rgba(147, 51, 234, 0.4);
+  --glow-jade: 0 0 20px rgba(16, 185, 129, 0.6), 0 0 40px rgba(16, 185, 129, 0.4);
+  --glow-purple-intense: 0 0 30px rgba(232, 121, 249, 0.8), 0 0 60px rgba(232, 121, 249, 0.5);
+  --glow-jade-intense: 0 0 30px rgba(110, 231, 183, 0.8), 0 0 60px rgba(110, 231, 183, 0.5);
+  
+  /* Gradients */
+  --gradient-purple-jade: linear-gradient(135deg, var(--color-cyber-purple) 0%, var(--color-cyber-jade) 100%);
+  --gradient-purple-pink: linear-gradient(135deg, var(--color-cyber-purple) 0%, var(--color-cyber-pink) 100%);
+  --gradient-jade-blue: linear-gradient(135deg, var(--color-cyber-jade) 0%, var(--color-cyber-blue) 100%);
+  --gradient-dark: linear-gradient(180deg, var(--color-cyber-black) 0%, var(--color-cyber-black-soft) 100%);
+}
+
+/* Dark Theme (Default) */
+.dark, :root {
+  /* Backgrounds */
+  --color-background: var(--color-cyber-black);
+  --color-background-secondary: var(--color-cyber-black-light);
+  --color-background-tertiary: var(--color-cyber-black-soft);
+  
+  /* Foregrounds */
+  --color-foreground: var(--color-cyber-gray-50);
+  --color-foreground-secondary: var(--color-cyber-gray-200);
+  --color-foreground-muted: var(--color-cyber-gray-400);
+  
+  /* Primary */
+  --color-primary: var(--color-cyber-purple);
+  --color-primary-foreground: var(--color-cyber-gray-50);
+  --color-primary-hover: var(--color-cyber-purple-light);
+  
+  /* Secondary */
+  --color-secondary: var(--color-cyber-gray-800);
+  --color-secondary-foreground: var(--color-cyber-gray-200);
+  --color-secondary-hover: var(--color-cyber-gray-700);
+  
+  /* Accent */
+  --color-accent: var(--color-cyber-jade);
+  --color-accent-foreground: var(--color-cyber-black);
+  --color-accent-hover: var(--color-cyber-jade-light);
+  
+  /* Destructive */
+  --color-destructive: var(--color-cyber-red);
+  --color-destructive-foreground: var(--color-cyber-gray-50);
+  
+  /* Borders */
+  --color-border: var(--color-cyber-gray-800);
+  --color-border-hover: var(--color-cyber-purple);
+  
+  /* Cards & Panels */
+  --color-card: var(--color-cyber-black-light);
+  --color-card-foreground: var(--color-cyber-gray-50);
+  --color-popover: var(--color-cyber-gray-900);
+  --color-popover-foreground: var(--color-cyber-gray-50);
+  
+  /* Inputs */
+  --color-input: var(--color-cyber-gray-800);
+  --color-input-focus: var(--color-cyber-purple);
+  --color-ring: var(--color-cyber-purple);
+  
+  /* Sidebar */
+  --color-sidebar-background: var(--color-cyber-black-soft);
+  --color-sidebar-border: var(--color-cyber-purple);
+  
+  /* Muted */
+  --color-muted: var(--color-cyber-gray-800);
+  --color-muted-foreground: var(--color-cyber-gray-400);
+  
+  /* Border radius */
+  --radius: 0.5rem;
+}
+
+/* Light Theme */
+.light {
+  /* Backgrounds */
+  --color-background: var(--color-cyber-gray-50);
+  --color-background-secondary: var(--color-cyber-gray-100);
+  --color-background-tertiary: var(--color-cyber-gray-200);
+  
+  /* Foregrounds */
+  --color-foreground: var(--color-cyber-gray-900);
+  --color-foreground-secondary: var(--color-cyber-gray-700);
+  --color-foreground-muted: var(--color-cyber-gray-500);
+  
+  /* Primary */
+  --color-primary: var(--color-cyber-purple-dark);
+  --color-primary-foreground: var(--color-cyber-gray-50);
+  --color-primary-hover: var(--color-cyber-purple);
+  
+  /* Secondary */
+  --color-secondary: var(--color-cyber-gray-200);
+  --color-secondary-foreground: var(--color-cyber-gray-900);
+  --color-secondary-hover: var(--color-cyber-gray-300);
+  
+  /* Accent */
+  --color-accent: var(--color-cyber-jade-dark);
+  --color-accent-foreground: var(--color-cyber-gray-50);
+  --color-accent-hover: var(--color-cyber-jade);
+  
+  /* Destructive */
+  --color-destructive: var(--color-cyber-red);
+  --color-destructive-foreground: var(--color-cyber-gray-50);
+  
+  /* Borders */
+  --color-border: var(--color-cyber-gray-300);
+  --color-border-hover: var(--color-cyber-purple-dark);
+  
+  /* Cards & Panels */
+  --color-card: var(--color-cyber-gray-50);
+  --color-card-foreground: var(--color-cyber-gray-900);
+  --color-popover: var(--color-cyber-gray-100);
+  --color-popover-foreground: var(--color-cyber-gray-900);
+  
+  /* Inputs */
+  --color-input: var(--color-cyber-gray-300);
+  --color-input-focus: var(--color-cyber-purple-dark);
+  --color-ring: var(--color-cyber-purple-dark);
+  
+  /* Sidebar */
+  --color-sidebar-background: var(--color-cyber-gray-100);
+  --color-sidebar-border: var(--color-cyber-purple-dark);
+  
+  /* Muted */
+  --color-muted: var(--color-cyber-gray-200);
+  --color-muted-foreground: var(--color-cyber-gray-600);
+  
+  /* Border radius */
+  --radius: 0.5rem;
+}
+
+/* Glassmorphism Effects */
+.glass {
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.glass-light {
+  background: rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+/* Neon Text Utilities */
+.text-glow-purple {
+  text-shadow: 0 0 10px var(--color-cyber-purple-glow), 0 0 20px var(--color-cyber-purple);
+}
+
+.text-glow-jade {
+  text-shadow: 0 0 10px var(--color-cyber-jade-glow), 0 0 20px var(--color-cyber-jade);
+}
+
+/* Animation Keyframes */
+@keyframes pulse-purple {
+  0%, 100% { box-shadow: var(--glow-purple); }
+  50% { box-shadow: var(--glow-purple-intense); }
+}
+
+@keyframes pulse-jade {
+  0%, 100% { box-shadow: var(--glow-jade); }
+  50% { box-shadow: var(--glow-jade-intense); }
+}
+
+@keyframes gradient-shift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}

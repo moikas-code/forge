@@ -16,12 +16,12 @@ interface AdvancedTerminalProps {
   terminal_id?: string;
   pane_id?: string;
   profile?: TerminalProfile;
-  onReady?: (terminal_id: string) => void;
+  onReady?: (terminalId: string) => void;
 }
 
 export function AdvancedTerminal({ 
   className, 
-  terminal_id: provided_terminal_id, 
+  terminalId: provided_terminal_id, 
   pane_id,
   profile,
   onReady 
@@ -61,7 +61,7 @@ export function AdvancedTerminal({
     // Dynamic import to avoid SSR issues
     const init_terminal = async () => {
       const { Terminal: XTerm } = await import('xterm');
-      const { FitAddon } = await import('xterm-addon-fit');
+      const { FitAddon } = await import('@xterm/addon-fit');
       const { WebLinksAddon } = await import('@xterm/addon-web-links');
       await import('xterm/css/xterm.css');
 

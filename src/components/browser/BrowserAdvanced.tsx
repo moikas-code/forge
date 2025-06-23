@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { invoke } from '@tauri-apps/api/core';
+import { open } from '@tauri-apps/plugin-shell';
 import { injectConsoleCapture, type ConsoleMessage } from '@/services/browser/consoleCapture';
 import { screenCaptureService } from '@/services/browser/screenCapture';
 import { use_browser_store } from '@/stores/browserStore';
@@ -73,7 +74,7 @@ export function BrowserAdvanced({ path, url: initialUrl, className }: BrowserAdv
   const [error, setError] = useState<string | null>(null);
   const [canGoBack, setCanGoBack] = useState(false);
   const [canGoForward, setCanGoForward] = useState(false);
-  const [useWebView, setUseWebView] = useState(false);
+  const [useWebView, setUseWebView] = useState(false); // Default to iframe mode
   const [webViewId, setWebViewId] = useState<string | null>(null);
   const [devToolsOpen, setDevToolsOpen] = useState(false);
   const [viewportPresets, setViewportPresets] = useState<ViewportPreset[]>([]);
@@ -100,6 +101,21 @@ export function BrowserAdvanced({ path, url: initialUrl, className }: BrowserAdv
     };
     loadPresets();
   }, []);
+  
+  const createWebView = async () => {
+    try {
+      const id = await invoke<string>('create_webview_window', { 
+        url: url, 
+        title: 'Browser Preview' 
+      });
+      setWebViewId(id);
+      setError(null);
+    } catch (err) {
+      console.error('Failed to create WebView:', err);
+      setError('Failed to create WebView window. Falling back to iframe mode.');
+      setUseWebView(false);
+    }
+  };
 
   // Hot reload functionality
   useEffect(() => {
@@ -294,7 +310,7 @@ export function BrowserAdvanced({ path, url: initialUrl, className }: BrowserAdv
   const handleOpenExternal = async () => {
     if (url) {
       try {
-        await invoke('open_external', { url });
+        await open(url);
       } catch (err) {
         console.error('Failed to open external URL:', err);
         setError('Failed to open URL in external browser');
@@ -400,17 +416,8 @@ export function BrowserAdvanced({ path, url: initialUrl, className }: BrowserAdv
   const toggleWebView = async () => {
     if (!useWebView) {
       // Switch to WebView
-      try {
-        const id = await invoke<string>('create_webview_window', { 
-          url, 
-          title: 'Browser Preview' 
-        });
-        setWebViewId(id);
-        setUseWebView(true);
-      } catch (err) {
-        console.error('Failed to create WebView:', err);
-        setError('Failed to create WebView window');
-      }
+      setUseWebView(true);
+      await createWebView();
     } else {
       // Switch back to iframe
       setUseWebView(false);
@@ -780,7 +787,29 @@ export function BrowserAdvanced({ path, url: initialUrl, className }: BrowserAdv
                     </div>
                   </div>
                 )}
-                {!useWebView && (
+                {useWebView ? (
+                  <div className="flex items-center justify-center h-full bg-background">
+                    <div className="text-center space-y-4 p-8">
+                      <Monitor className="w-16 h-16 text-primary mx-auto" />
+                      <h3 className="text-lg font-medium text-foreground">Browser Window Active</h3>
+                      <p className="text-sm text-muted-foreground max-w-md">
+                        The webpage is displayed in a separate native window for better compatibility.
+                      </p>
+                      {webViewId && (
+                        <p className="text-xs text-muted-foreground">
+                          Window ID: {webViewId}
+                        </p>
+                      )}
+                      <Button 
+                        onClick={toggleWebView} 
+                        variant="outline"
+                        size="sm"
+                      >
+                        Switch to Embedded Mode
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
                   <div className={currentViewport ? 'flex items-center justify-center h-full bg-gray-100' : 'w-full h-full'}>
                     <iframe
                       ref={iframeRef}

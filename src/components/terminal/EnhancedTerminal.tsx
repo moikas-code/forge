@@ -6,23 +6,18 @@ import { listen } from '@tauri-apps/api/event';
 import { useLayoutStore } from '../../stores/layoutStore';
 import { useTerminalPersistenceStore } from '@/stores/terminalPersistenceStore';
 import { parseCommand, isCustomCommand, executeCommand, CommandContext } from '../../utils/terminalCommands';
-import { create_terminal_performance_manager, TerminalPerformanceManager, useTerminalPerformanceMetrics } from '@/utils/terminalPerformance';
-import { TerminalPerformanceIndicator } from './TerminalPerformanceIndicator';
+import { create_terminal_performance_manager, TerminalPerformanceManager } from '@/utils/terminalPerformance';
 import { CommandPalette } from './CommandPalette';
 import 'xterm/css/xterm.css';
 import './Terminal.css';
 
 interface EnhancedTerminalProps {
   className?: string;
-  show_performance_indicator?: boolean;
-  performance_debug?: boolean;
   autoFocus?: boolean;
 }
 
 export function EnhancedTerminal({ 
   className,
-  show_performance_indicator = false,
-  performance_debug = false,
   autoFocus = false 
 }: EnhancedTerminalProps) {
   const terminal_ref = useRef<HTMLDivElement>(null);
@@ -36,8 +31,6 @@ export function EnhancedTerminal({
   const unlisten_error_ref = useRef<(() => void) | null>(null);
   const performance_manager_ref = useRef<TerminalPerformanceManager | null>(null);
   
-  // Get performance metrics for display
-  const performance_metrics = useTerminalPerformanceMetrics(performance_manager_ref.current);
   
   // Command buffering
   const command_buffer_ref = useRef<string>('');
@@ -131,27 +124,13 @@ export function EnhancedTerminal({
     terminal.loadAddon(fit_addon);
     terminal.loadAddon(web_links_addon);
     
-    // Then try to load performance renderers
-    try {
-      const { WebglAddon } = await import('@xterm/addon-webgl');
-      const webgl_addon = new WebglAddon();
-      terminal.loadAddon(webgl_addon);
-      console.log('WebGL renderer loaded for better performance');
-    } catch (error) {
-      console.log('WebGL not available, trying Canvas renderer');
-      try {
-        const { CanvasAddon } = await import('@xterm/addon-canvas');
-        const canvas_addon = new CanvasAddon();
-        terminal.loadAddon(canvas_addon);
-        console.log('Canvas renderer loaded');
-      } catch (canvas_error) {
-        console.log('Using default DOM renderer');
-      }
-    }
+    // Skip WebGL/Canvas renderers for now to avoid initialization issues
+    // They can be enabled later once the terminal is stable
+    console.log('Using default DOM renderer for stability');
     
     // Initialize performance manager
     performance_manager_ref.current = create_terminal_performance_manager(terminal, {
-      debug: performance_debug,
+      debug: false,
       buffer: {
         max_lines: 10000,
         trim_threshold: 0.8,
@@ -175,42 +154,38 @@ export function EnhancedTerminal({
     // Open terminal in the DOM element
     if (terminal_ref.current) {
       terminal.open(terminal_ref.current);
-      // Focus the terminal after opening
+      
+      // Wait for terminal to be fully rendered before operations
       setTimeout(() => {
-        console.log('[EnhancedTerminal] Attempting to focus terminal');
-        terminal.focus();
-        
-        // Additional focus attempt on the underlying textarea
-        const textarea = terminal.textarea;
-        if (textarea) {
-          textarea.focus();
-          console.log('[EnhancedTerminal] Focused terminal textarea element');
-        } else {
-          console.warn('[EnhancedTerminal] No textarea element found');
+        // Ensure terminal has dimensions before fitting
+        if (terminal_ref.current && terminal_ref.current.offsetWidth > 0 && terminal_ref.current.offsetHeight > 0) {
+          try {
+            fit_addon.fit();
+            console.log('[EnhancedTerminal] Terminal fitted successfully');
+          } catch (fitError) {
+            console.warn('[EnhancedTerminal] Failed to fit terminal:', fitError);
+          }
         }
-      }, 100);
+        
+        // Focus the terminal after opening
+        console.log('[EnhancedTerminal] Attempting to focus terminal');
+        try {
+          terminal.focus();
+          
+          // Additional focus attempt on the underlying textarea
+          const textarea = terminal.textarea;
+          if (textarea) {
+            textarea.focus();
+            console.log('[EnhancedTerminal] Focused terminal textarea element');
+          } else {
+            console.warn('[EnhancedTerminal] No textarea element found');
+          }
+        } catch (focusError) {
+          console.warn('[EnhancedTerminal] Failed to focus terminal:', focusError);
+        }
+      }, 200);
     }
     
-    // Initial fit with safety checks
-    setTimeout(() => {
-      try {
-        if (fit_addon && terminal && terminal_ref.current && terminal_ref.current.offsetWidth > 0) {
-          fit_addon.fit();
-        }
-      } catch (error) {
-        console.warn('Initial fit failed:', error);
-        // Retry after a brief delay
-        setTimeout(() => {
-          try {
-            if (fit_addon && terminal) {
-              fit_addon.fit();
-            }
-          } catch (retry_error) {
-            console.warn('Retry fit failed:', retry_error);
-          }
-        }, 100);
-      }
-    }, 0);
     
     // Add click handler to focus terminal
     const handle_click = () => {
@@ -223,8 +198,10 @@ export function EnhancedTerminal({
       terminal_ref.current.addEventListener('click', handle_click);
     }
     
-    // Create backend terminal
-    create_backend_terminal(terminal, fit_addon);
+    // Create backend terminal after a delay to ensure terminal is ready
+    setTimeout(() => {
+      create_backend_terminal(terminal, fit_addon);
+    }, 300);
 
     // Set up resize observer with safety checks
     resize_observer_ref.current = new ResizeObserver(() => {
@@ -279,18 +256,52 @@ export function EnhancedTerminal({
         });
         
         set_terminal_id(response.terminal_id);
+        console.log('[EnhancedTerminal] Terminal created with ID:', response.terminal_id);
         
         // Show welcome message with available commands
-        term.write('\r\n\x1b[1;36mForge MOI Terminal\x1b[0m\r\n');
+        term.write('\r\n\x1b[1;36mForge MOI Terminal (Bash)\x1b[0m\r\n');
         term.write('Type \x1b[1;33mhelp\x1b[0m to see available IDE commands\r\n\r\n');
+        
+        // Send a test echo command after a short delay to verify the terminal is working
+        setTimeout(async () => {
+          console.log('[EnhancedTerminal] Sending test echo command...');
+          const testCommand = 'echo "Terminal initialized successfully"\n';
+          const bytes = new TextEncoder().encode(testCommand);
+          try {
+            await invoke('write_to_terminal', {
+              terminalId: response.terminal_id,
+              data: Array.from(bytes)
+            });
+            console.log('[EnhancedTerminal] Test command sent successfully');
+          } catch (error) {
+            console.error('[EnhancedTerminal] Failed to send test command:', error);
+          }
+        }, 1000);
         
         // Set up event listeners
         unlisten_output_ref.current = await listen<{ terminal_id: string; data: number[] }>(
           'terminal-output',
           (event) => {
-            if (event.payload.terminal_id === response.terminal_id && xterm_ref.current) {
-              const data = new Uint8Array(event.payload.data);
+            console.log('[EnhancedTerminal] Received terminal-output event:', event);
+            console.log('[EnhancedTerminal] Event structure:', JSON.stringify(event, null, 2));
+            
+            // The event is wrapped in a payload property by Tauri
+            const payload = event.payload;
+            console.log('[EnhancedTerminal] Payload:', payload);
+            
+            if (payload && payload.terminal_id === response.terminal_id && xterm_ref.current) {
+              console.log('[EnhancedTerminal] Event data type:', typeof payload.data);
+              console.log('[EnhancedTerminal] Event data:', payload.data);
+              console.log('[EnhancedTerminal] Terminal IDs match:', payload.terminal_id === response.terminal_id);
+              
+              // Ensure data is an array
+              const dataArray = Array.isArray(payload.data) ? payload.data : [];
+              console.log('[EnhancedTerminal] Data array:', dataArray);
+              
+              const data = new Uint8Array(dataArray);
               const text = new TextDecoder().decode(data);
+              console.log('[EnhancedTerminal] Decoded text:', JSON.stringify(text));
+              console.log('[EnhancedTerminal] Writing to terminal:', text);
               
               // Track current line for command detection
               for (const char of text) {
@@ -316,10 +327,22 @@ export function EnhancedTerminal({
               }
               
               // Use performance manager for optimized output
-              if (performance_manager_ref.current) {
-                performance_manager_ref.current.write(data);
-              } else {
-                xterm_ref.current.write(data);
+              try {
+                if (performance_manager_ref.current) {
+                  console.log('[EnhancedTerminal] Writing via performance manager');
+                  performance_manager_ref.current.write(data);
+                } else {
+                  console.log('[EnhancedTerminal] Writing directly to xterm');
+                  xterm_ref.current.write(data);
+                }
+              } catch (writeError) {
+                console.error('[EnhancedTerminal] Error writing to terminal:', writeError);
+                // Try to write the text directly as a fallback
+                try {
+                  xterm_ref.current.write(text);
+                } catch (fallbackError) {
+                  console.error('[EnhancedTerminal] Fallback write also failed:', fallbackError);
+                }
               }
             }
           }
@@ -328,7 +351,9 @@ export function EnhancedTerminal({
         unlisten_exit_ref.current = await listen<{ terminal_id: string; exit_code?: number }>(
           'terminal-exit',
           (event) => {
-            if (event.payload.terminal_id === response.terminal_id && xterm_ref.current) {
+            const payload = event.payload;
+            console.log('[EnhancedTerminal] Terminal exit event:', event);
+            if (payload && payload.terminal_id === response.terminal_id && xterm_ref.current) {
               xterm_ref.current.write('\r\n[Process exited]\r\n');
             }
           }
@@ -337,8 +362,10 @@ export function EnhancedTerminal({
         unlisten_error_ref.current = await listen<{ terminal_id: string; message: string }>(
           'terminal-error',
           (event) => {
-            if (event.payload.terminal_id === response.terminal_id && xterm_ref.current) {
-              xterm_ref.current.write(`\r\n[Error: ${event.payload.message}]\r\n`);
+            const payload = event.payload;
+            console.log('[EnhancedTerminal] Terminal error event:', event);
+            if (payload && payload.terminal_id === response.terminal_id && xterm_ref.current) {
+              xterm_ref.current.write(`\r\n[Error: ${payload.message}]\r\n`);
             }
           }
         );
@@ -395,7 +422,7 @@ export function EnhancedTerminal({
               console.log('Sending to backend:', data);
               const bytes = new TextEncoder().encode(data);
               await invoke('write_to_terminal', {
-                terminal_id: response.terminal_id,
+                terminalId: response.terminal_id,
                 data: Array.from(bytes)
               });
             } catch (error) {
@@ -409,7 +436,7 @@ export function EnhancedTerminal({
           if (response.terminal_id) {
             try {
               await invoke('resize_terminal', {
-                terminal_id: response.terminal_id,
+                terminalId: response.terminal_id,
                 size: { rows, cols }
               });
             } catch (error) {
@@ -465,7 +492,7 @@ export function EnhancedTerminal({
         
         // Close backend terminal
         if (terminal_id) {
-          invoke('close_terminal', { terminal_id: terminal_id }).catch(console.error);
+          invoke('close_terminal', { terminalId: terminal_id }).catch(console.error);
         }
         
         if (web_links_addon) {
@@ -510,7 +537,7 @@ export function EnhancedTerminal({
     <>
       <div 
         ref={container_ref}
-        className={`terminal-container ${className || ''}`}
+        className={`terminal-container ${className || ''} relative flex flex-col`}
         onClick={() => {
           // Ensure terminal gets focus when clicked
           console.log('[EnhancedTerminal] Container clicked, focusing terminal');
@@ -528,7 +555,8 @@ export function EnhancedTerminal({
       >
         <div 
           ref={terminal_ref} 
-          className="terminal-wrapper"
+          className="terminal-wrapper flex-1"
+          style={{ minHeight: '200px', minWidth: '300px' }}
           onClick={() => {
             // Also focus on click of the terminal wrapper
             if (xterm_ref.current) {
@@ -536,16 +564,6 @@ export function EnhancedTerminal({
             }
           }}
         />
-        
-        {/* Performance Indicator */}
-        {show_performance_indicator && (
-          <div className="absolute top-2 right-2 z-10">
-            <TerminalPerformanceIndicator
-              metrics={performance_metrics}
-              show_details={performance_debug}
-            />
-          </div>
-        )}
       </div>
       
       {/* Command Palette Overlay */}

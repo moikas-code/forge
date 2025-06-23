@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
-import { Sidebar } from './Sidebar';
+import { MinimalSidebar } from './MinimalSidebar';
 import { TabManager } from './TabManager';
 import { useLayoutStore } from '@/stores/layoutStore';
 import { Button } from '@/components/ui/button';
@@ -10,7 +10,7 @@ import { ChevronUp, Menu, X, Terminal } from 'lucide-react';
 import { useResponsive } from '@/hooks/useMediaQuery';
 import { EnhancedTerminal } from '@/components/terminal';
 import { CodeEditor } from '@/components/editor';
-import { BrowserAdvanced } from '@/components/browser';
+import { Browser } from '@/components/browser';
 import { FileExplorer } from '@/components/explorer';
 import { TabErrorBoundary } from './TabErrorBoundary';
 import { ComponentErrorBoundary } from './ComponentErrorBoundary';
@@ -43,9 +43,19 @@ export function AppLayout() {
   
   const activeTab = tabs.find(t => t.id === activeTabId);
   
-  // Set loading to false after hydration
+  // Set loading to false after hydration and ensure browser tab exists
   useEffect(() => {
     setIsLoading(false);
+    
+    // Create default browser tab if no tabs exist
+    if (tabs.length === 0) {
+      const { addTab } = useLayoutStore.getState();
+      addTab({
+        title: 'Browser',
+        type: 'browser',
+        path: 'https://developer.mozilla.org'
+      });
+    }
   }, []);
   
   // Close mobile sidebar when clicking outside (on medium+ screens)
@@ -107,9 +117,9 @@ export function AppLayout() {
       >
         {/* Sidebar Panel */}
         <Panel 
-          defaultSize={isLoading ? 17 : Math.min(effectiveSidebarSize, 25)} 
-          minSize={isSidebarCollapsed ? 3.5 : 15} 
-          maxSize={25}
+          defaultSize={3} 
+          minSize={3} 
+          maxSize={3}
           collapsible={false}
           className={isMobile ? (
             isMobileSidebarOpen 
@@ -118,7 +128,7 @@ export function AppLayout() {
           ) : ''}
         >
           <ComponentErrorBoundary componentName="Sidebar">
-            <Sidebar />
+            <MinimalSidebar />
           </ComponentErrorBoundary>
         </Panel>
         
@@ -129,7 +139,7 @@ export function AppLayout() {
         )}
         
         {/* Main Content Area */}
-        <Panel defaultSize={83}>
+        <Panel defaultSize={97}>
           <PanelGroup 
             direction="vertical"
             onLayout={handleBottomPanelResize}
@@ -163,9 +173,10 @@ export function AppLayout() {
                           </ComponentErrorBoundary>
                         ) : activeTab.type === 'browser' ? (
                           <ComponentErrorBoundary componentName="Browser">
-                            <BrowserAdvanced 
-                              path={activeTab.path} 
-                              className="h-full" 
+                            <Browser 
+                              url={activeTab.path} 
+                              className="h-full"
+                              tabId={activeTab.id}
                             />
                           </ComponentErrorBoundary>
                         ) : activeTab.type === 'explorer' ? (
@@ -185,19 +196,7 @@ export function AppLayout() {
                         )}
                       </TabErrorBoundary>
                     </div>
-                  ) : (
-                    <div className="h-full flex items-center justify-center"
-                         role="main"
-                         aria-label="Welcome screen"
-                         id="main-content">
-                      <div className="text-center space-y-2">
-                        <h1 className="text-lg text-muted-foreground">Welcome to Forge MOI</h1>
-                        <p className="text-sm text-muted-foreground">
-                          Select a tool from the sidebar to get started
-                        </p>
-                      </div>
-                    </div>
-                  )}
+                  ) : null}
                 </div>
               </div>
             </Panel>
@@ -236,8 +235,6 @@ export function AppLayout() {
                       <ComponentErrorBoundary componentName="Terminal" fallbackHeight="100%">
                         <EnhancedTerminal 
                           className="h-full" 
-                          show_performance_indicator={process.env.NODE_ENV === 'development'}
-                          performance_debug={process.env.NODE_ENV === 'development'}
                           autoFocus={!isBottomPanelCollapsed}
                         />
                       </ComponentErrorBoundary>

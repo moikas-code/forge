@@ -147,6 +147,9 @@ pub fn run() {
     // Create the browser manager
     let browser_manager = browser::BrowserManager::new();
     
+    // Create the embedded browser manager
+    let embedded_browser_manager = browser::EmbeddedBrowserManager::new();
+    
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_shell::init())
@@ -154,6 +157,7 @@ pub fn run() {
         .plugin(tauri_plugin_store::Builder::new().build())
         .manage(terminal_manager)
         .manage(browser_manager)
+        .manage(embedded_browser_manager)
         .invoke_handler(tauri::generate_handler![
             greet,
             read_file,
@@ -196,7 +200,13 @@ pub fn run() {
             browser::clear_browser_console_logs,
             browser::get_browser_viewport_presets,
             browser::add_console_message,
-            browser::save_screenshot
+            browser::save_screenshot,
+            browser::create_embedded_browser,
+            browser::navigate_embedded_browser,
+            browser::resize_embedded_browser,
+            browser::close_embedded_browser,
+            browser::get_browser_navigation_state,
+            browser::get_browser_url
         ])
         .setup(|app| {
             // Create the file watcher manager
@@ -212,15 +222,26 @@ pub fn run() {
             tauri::async_runtime::spawn(async move {
                 while let Some(event) = event_receiver.recv().await {
                     // Emit terminal events to the frontend
-                    match &event {
-                        terminal::TerminalEvent::Output { terminal_id: _, data: _ } => {
-                            let _ = app_handle.emit("terminal-output", &event);
+                    match event {
+                        terminal::TerminalEvent::Output { terminal_id, data } => {
+                            // Convert Vec<u8> to Vec<i32> for JavaScript compatibility
+                            let data_as_numbers: Vec<i32> = data.into_iter().map(|b| b as i32).collect();
+                            let _ = app_handle.emit("terminal-output", serde_json::json!({
+                                "terminal_id": terminal_id,
+                                "data": data_as_numbers
+                            }));
                         }
-                        terminal::TerminalEvent::Exit { terminal_id: _, exit_code: _ } => {
-                            let _ = app_handle.emit("terminal-exit", &event);
+                        terminal::TerminalEvent::Exit { terminal_id, exit_code } => {
+                            let _ = app_handle.emit("terminal-exit", serde_json::json!({
+                                "terminal_id": terminal_id,
+                                "exit_code": exit_code
+                            }));
                         }
-                        terminal::TerminalEvent::Error { terminal_id: _, message: _ } => {
-                            let _ = app_handle.emit("terminal-error", &event);
+                        terminal::TerminalEvent::Error { terminal_id, message } => {
+                            let _ = app_handle.emit("terminal-error", serde_json::json!({
+                                "terminal_id": terminal_id,
+                                "message": message
+                            }));
                         }
                     }
                 }

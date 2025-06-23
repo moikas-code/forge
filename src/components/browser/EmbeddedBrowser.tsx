@@ -1,8 +1,7 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useRef } from 'react';
 import { invoke } from '@tauri-apps/api/core';
-import { open } from '@tauri-apps/plugin-shell';
 import { 
   RefreshCw, 
   ExternalLink, 
@@ -10,58 +9,100 @@ import {
   ChevronLeft, 
   ChevronRight,
   AlertCircle,
-  Loader2
+  Loader2,
+  Search,
+  Monitor
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
-interface BrowserPreviewProps {
-  path?: string;
+interface EmbeddedBrowserProps {
   url?: string;
   className?: string;
 }
 
-export function BrowserPreview({ path, url: initialUrl, className }: BrowserPreviewProps) {
-  const [url, setUrl] = useState(initialUrl || 'https://www.google.com');
-  const [inputUrl, setInputUrl] = useState(initialUrl || 'https://www.google.com');
+// List of sites known to work in iframes
+const IFRAME_FRIENDLY_DOMAINS = [
+  'localhost',
+  '127.0.0.1',
+  'wikipedia.org',
+  'w3schools.com',
+  'developer.mozilla.org',
+  'docs.python.org',
+  'nodejs.org',
+  'reactjs.org',
+  'vuejs.org',
+  'angular.io',
+  'tailwindcss.com',
+  'github.com/readme', // GitHub readmes can be embedded
+];
+
+export function EmbeddedBrowser({ url: initialUrl, className }: EmbeddedBrowserProps) {
+  const [url, setUrl] = useState(initialUrl || 'https://www.wikipedia.org');
+  const [inputUrl, setInputUrl] = useState(initialUrl || 'https://www.wikipedia.org');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [canGoBack, setCanGoBack] = useState(false);
   const [canGoForward, setCanGoForward] = useState(false);
+  const [canEmbed, setCanEmbed] = useState(true);
   const iframeRef = useRef<HTMLIFrameElement>(null);
-  const [history, setHistory] = useState<string[]>([initialUrl || 'https://www.google.com']);
+  const [history, setHistory] = useState<string[]>([initialUrl || 'https://www.wikipedia.org']);
   const [historyIndex, setHistoryIndex] = useState(0);
 
-  useEffect(() => {
-    if (path) {
-      // Convert file path to localhost URL
-      const newUrl = `http://localhost:3000/${path.split('/').pop()}`;
-      navigateToUrl(newUrl);
-    }
-  }, [path]);
-
-  const isValidUrl = (urlString: string): boolean => {
+  const isEmbeddable = (urlString: string): boolean => {
     try {
-      new URL(urlString);
-      return true;
+      const urlObj = new URL(urlString);
+      const hostname = urlObj.hostname;
+      
+      // Check if it's a local URL
+      if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname.includes('192.168.')) {
+        return true;
+      }
+      
+      // Check against known embeddable domains
+      return IFRAME_FRIENDLY_DOMAINS.some(domain => hostname.includes(domain));
     } catch {
       return false;
     }
   };
 
-  const navigateToUrl = (newUrl: string) => {
-    if (!isValidUrl(newUrl)) {
-      setError('Invalid URL');
-      return;
+  const normalizeUrl = (urlString: string): string => {
+    // If it doesn't have a protocol, check if it looks like a URL
+    if (!urlString.includes('://')) {
+      // Check if it looks like a domain
+      if (urlString.includes('.') && !urlString.includes(' ')) {
+        return `https://${urlString}`;
+      } else {
+        // Treat as search query
+        return `https://www.google.com/search?q=${encodeURIComponent(urlString)}`;
+      }
     }
+    return urlString;
+  };
 
+  const navigateToUrl = async (newUrl: string) => {
+    const normalizedUrl = normalizeUrl(newUrl);
+    
     setError(null);
     setLoading(true);
-    setUrl(newUrl);
-    setInputUrl(newUrl);
+    
+    // Check if the URL can be embedded
+    const embeddable = isEmbeddable(normalizedUrl);
+    setCanEmbed(embeddable);
+    
+    if (!embeddable) {
+      setError(`This website cannot be displayed in an embedded browser. Click "Open in Native Browser" to view it in a separate window.`);
+      setLoading(false);
+      setUrl(normalizedUrl);
+      setInputUrl(normalizedUrl);
+      return;
+    }
+    
+    setUrl(normalizedUrl);
+    setInputUrl(normalizedUrl);
 
     // Update history
     const newHistory = history.slice(0, historyIndex + 1);
-    newHistory.push(newUrl);
+    newHistory.push(normalizedUrl);
     setHistory(newHistory);
     setHistoryIndex(newHistory.length - 1);
     
@@ -80,11 +121,9 @@ export function BrowserPreview({ path, url: initialUrl, className }: BrowserPrev
       const newIndex = historyIndex - 1;
       const previousUrl = history[newIndex];
       setHistoryIndex(newIndex);
-      setUrl(previousUrl);
-      setInputUrl(previousUrl);
+      navigateToUrl(previousUrl);
       setCanGoBack(newIndex > 0);
       setCanGoForward(true);
-      setLoading(true);
     }
   };
 
@@ -93,16 +132,14 @@ export function BrowserPreview({ path, url: initialUrl, className }: BrowserPrev
       const newIndex = historyIndex + 1;
       const nextUrl = history[newIndex];
       setHistoryIndex(newIndex);
-      setUrl(nextUrl);
-      setInputUrl(nextUrl);
+      navigateToUrl(nextUrl);
       setCanGoBack(true);
       setCanGoForward(newIndex < history.length - 1);
-      setLoading(true);
     }
   };
 
   const handleRefresh = () => {
-    if (iframeRef.current) {
+    if (iframeRef.current && canEmbed) {
       setLoading(true);
       setError(null);
       // Force refresh by setting src again
@@ -117,17 +154,29 @@ export function BrowserPreview({ path, url: initialUrl, className }: BrowserPrev
   };
 
   const handleHome = () => {
-    navigateToUrl('https://www.google.com');
+    navigateToUrl('https://www.wikipedia.org');
   };
 
   const handleOpenExternal = async () => {
     if (url) {
       try {
-        await open(url);
+        await invoke('open_external', { url });
       } catch (err) {
         console.error('Failed to open external URL:', err);
         setError('Failed to open URL in external browser');
       }
+    }
+  };
+
+  const handleOpenNativeBrowser = async () => {
+    try {
+      await invoke<string>('create_webview_window', { 
+        url: url, 
+        title: 'Browser' 
+      });
+    } catch (err) {
+      console.error('Failed to create WebView:', err);
+      setError('Failed to create browser window');
     }
   };
 
@@ -138,7 +187,8 @@ export function BrowserPreview({ path, url: initialUrl, className }: BrowserPrev
 
   const handleIframeError = () => {
     setLoading(false);
-    setError('Failed to load the page. Make sure your development server is running.');
+    setError('Failed to load the page. The website may not allow embedding.');
+    setCanEmbed(false);
   };
 
   return (
@@ -171,7 +221,7 @@ export function BrowserPreview({ path, url: initialUrl, className }: BrowserPrev
             variant="ghost"
             size="icon"
             onClick={handleRefresh}
-            disabled={loading}
+            disabled={loading || !canEmbed}
             className="h-8 w-8"
           >
             {loading ? (
@@ -192,16 +242,19 @@ export function BrowserPreview({ path, url: initialUrl, className }: BrowserPrev
         </div>
 
         {/* URL Bar */}
-        <form onSubmit={handleNavigate} className="flex-1 flex items-center">
-          <input
-            type="text"
-            value={inputUrl}
-            onChange={(e) => setInputUrl(e.target.value)}
-            className="flex-1 px-3 py-1.5 text-sm bg-secondary/50 border border-border/50 rounded-md 
-                     focus:outline-none focus:ring-1 focus:ring-primary/50 focus:border-primary/50
-                     font-mono text-xs"
-            placeholder="Enter URL..."
-          />
+        <form onSubmit={handleNavigate} className="flex-1 flex items-center gap-2">
+          <div className="flex-1 relative">
+            <input
+              type="text"
+              value={inputUrl}
+              onChange={(e) => setInputUrl(e.target.value)}
+              className="w-full px-3 py-1.5 pr-10 text-sm bg-secondary/50 border border-border/50 rounded-md 
+                       focus:outline-none focus:ring-1 focus:ring-primary/50 focus:border-primary/50
+                       font-mono text-xs"
+              placeholder="Search or enter URL..."
+            />
+            <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+          </div>
         </form>
 
         {/* External Link */}
@@ -218,21 +271,37 @@ export function BrowserPreview({ path, url: initialUrl, className }: BrowserPrev
 
       {/* Browser Content */}
       <div className="flex-1 relative bg-white">
-        {error ? (
+        {error || !canEmbed ? (
           <div className="absolute inset-0 flex items-center justify-center bg-background">
-            <div className="text-center space-y-4 p-8">
-              <div className="w-16 h-16 mx-auto bg-destructive/10 rounded-lg flex items-center justify-center">
-                <AlertCircle className="w-8 h-8 text-destructive" />
+            <div className="text-center space-y-4 p-8 max-w-md">
+              <div className="w-16 h-16 mx-auto bg-warning/10 rounded-lg flex items-center justify-center">
+                <AlertCircle className="w-8 h-8 text-warning" />
               </div>
-              <h3 className="text-lg font-medium text-foreground">Error Loading Page</h3>
-              <p className="text-sm text-muted-foreground max-w-md">{error}</p>
-              <Button 
-                onClick={handleRefresh} 
-                variant="outline"
-                size="sm"
-              >
-                Try Again
-              </Button>
+              <h3 className="text-lg font-medium text-foreground">Cannot Display Website</h3>
+              <p className="text-sm text-muted-foreground">{error || 'This website cannot be displayed in an embedded browser.'}</p>
+              <div className="flex flex-col gap-2">
+                <Button 
+                  onClick={handleOpenNativeBrowser} 
+                  variant="default"
+                  size="sm"
+                  className="gap-2"
+                >
+                  <Monitor size={16} />
+                  Open in Native Browser
+                </Button>
+                <Button 
+                  onClick={handleOpenExternal} 
+                  variant="outline"
+                  size="sm"
+                  className="gap-2"
+                >
+                  <ExternalLink size={16} />
+                  Open in System Browser
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground mt-4">
+                Try websites like Wikipedia, MDN Web Docs, or local development servers.
+              </p>
             </div>
           </div>
         ) : (
