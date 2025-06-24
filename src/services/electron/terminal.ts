@@ -14,10 +14,15 @@ export class TerminalService {
 
     // Set up global listeners
     this.api.terminal.onData((data: TerminalData) => {
+      console.log('[TerminalService] Received data event:', data.terminalId, data.data.length, 'bytes');
       const listener = this.dataListeners.get(data.terminalId);
       if (listener) {
         // Convert number array back to Uint8Array
-        listener(new Uint8Array(data.data));
+        const uint8Array = new Uint8Array(data.data);
+        console.log('[TerminalService] Dispatching to listener');
+        listener(uint8Array);
+      } else {
+        console.warn('[TerminalService] No listener found for terminal:', data.terminalId);
       }
     });
 
@@ -34,7 +39,14 @@ export class TerminalService {
 
   async create(options?: TerminalOptions): Promise<TerminalInfo> {
     if (!this.api) throw new Error('Electron API not available');
-    return this.api.terminal.create(options);
+    try {
+      const result = await this.api.terminal.create(options);
+      console.log('[TerminalService] Created terminal:', result);
+      return result;
+    } catch (error) {
+      console.error('[TerminalService] Error creating terminal:', error);
+      throw error;
+    }
   }
 
   async write(id: string, data: string | Uint8Array): Promise<boolean> {
@@ -45,7 +57,16 @@ export class TerminalService {
       ? new TextEncoder().encode(data)
       : data;
     
-    return this.api.terminal.write(id, uint8Data);
+    try {
+      const result = await this.api.terminal.write(id, uint8Data);
+      if (!result) {
+        console.warn(`[TerminalService] Write failed for terminal ${id}`);
+      }
+      return result;
+    } catch (error) {
+      console.error(`[TerminalService] Error writing to terminal ${id}:`, error);
+      throw error;
+    }
   }
 
   async resize(id: string, cols: number, rows: number): Promise<boolean> {

@@ -255,7 +255,7 @@ export function EditorToolbar({
               <FolderOpen className="w-4 h-4" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48">
+          <DropdownMenuContent align="end" className="w-48 bg-cyber-black border-cyber-purple/30">
             <DropdownMenuLabel>File Operations</DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={onExport}>
@@ -281,7 +281,7 @@ export function EditorToolbar({
               <Eye className="w-4 h-4" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
+          <DropdownMenuContent align="end" className="w-56 bg-cyber-black border-cyber-purple/30">
             <DropdownMenuLabel>View Options</DropdownMenuLabel>
             <DropdownMenuSeparator />
             
@@ -313,12 +313,12 @@ export function EditorToolbar({
                 <ZoomIn className="w-4 h-4 mr-2" />
                 Font Size ({fontSize}px)
               </DropdownMenuSubTrigger>
-              <DropdownMenuSubContent>
+              <DropdownMenuSubContent className="bg-cyber-black border-cyber-purple/30">
                 {[10, 11, 12, 13, 14, 15, 16, 18, 20, 22, 24].map((size) => (
                   <DropdownMenuItem
                     key={size}
                     onClick={() => onFontSizeChange?.(size)}
-                    className={fontSize === size ? 'bg-accent' : ''}
+                    className={fontSize === size ? 'bg-cyber-purple/30 text-cyber-purple' : ''}
                   >
                     {size}px
                   </DropdownMenuItem>
@@ -340,7 +340,7 @@ export function EditorToolbar({
               <Settings className="w-4 h-4" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-64">
+          <DropdownMenuContent align="end" className="w-64 bg-cyber-black border-cyber-purple/30">
             <DropdownMenuLabel>Editor Settings</DropdownMenuLabel>
             <DropdownMenuSeparator />
             
@@ -349,7 +349,7 @@ export function EditorToolbar({
                 <Palette className="w-4 h-4 mr-2" />
                 Theme
               </DropdownMenuSubTrigger>
-              <DropdownMenuSubContent>
+              <DropdownMenuSubContent className="bg-cyber-black border-cyber-purple/30">
                 <DropdownMenuItem>Forge Dark</DropdownMenuItem>
                 <DropdownMenuItem>Forge Light</DropdownMenuItem>
                 <DropdownMenuItem>High Contrast</DropdownMenuItem>

@@ -52,7 +52,7 @@ export function AppLayout() {
     if (tabs.length === 0) {
       const { addTab } = useLayoutStore.getState();
       addTab({
-        title: 'Browser',
+        title: 'moikas.com',
         type: 'browser',
         path: 'https://moikas.com'
       });
@@ -116,17 +116,21 @@ export function AppLayout() {
         className="flex-1"
         onLayout={handleSidebarResize}
       >
-        {/* Sidebar Panel */}
+        {/* Sidebar Panel - Fixed width (50px) */}
         <Panel 
-          defaultSize={3} 
-          minSize={3} 
-          maxSize={3}
+          defaultSize={3.6} 
+          minSize={3.6} 
+          maxSize={3.6}
           collapsible={false}
-          className={isMobile ? (
-            isMobileSidebarOpen 
-              ? 'absolute left-0 top-0 h-full w-64 z-50 shadow-2xl transform translate-x-0 transition-transform duration-200 ease-in-out'
-              : 'absolute left-0 top-0 h-full w-64 z-50 transform -translate-x-full transition-transform duration-200 ease-in-out'
-          ) : ''}
+          id="sidebar-panel"
+          className={cn(
+            isMobile ? (
+              isMobileSidebarOpen 
+                ? 'absolute left-0 top-0 h-full w-64 z-50 shadow-2xl transform translate-x-0 transition-transform duration-200 ease-in-out'
+                : 'absolute left-0 top-0 h-full w-64 z-50 transform -translate-x-full transition-transform duration-200 ease-in-out'
+            ) : '',
+            'min-w-[50px]'
+          )}
         >
           <ComponentErrorBoundary componentName="Sidebar">
             <MinimalSidebar />
@@ -140,7 +144,7 @@ export function AppLayout() {
         )}
         
         {/* Main Content Area */}
-        <Panel defaultSize={97}>
+        <Panel defaultSize={96.4}>
           <PanelGroup 
             direction="vertical"
             onLayout={handleBottomPanelResize}
@@ -164,7 +168,7 @@ export function AppLayout() {
                       <div 
                         key={tab.id}
                         className={cn(
-                          "absolute inset-0 p-1",
+                          "absolute inset-0 p-0",
                           tab.id !== activeTab?.id && "hidden"
                         )}
                         role="tabpanel"
@@ -186,7 +190,7 @@ export function AppLayout() {
                     
                     {/* Render active non-browser tab */}
                     {activeTab && activeTab.type !== 'browser' && (
-                      <div className="absolute inset-0 p-1"
+                      <div className="absolute inset-0 p-0"
                            role="tabpanel"
                            id={`tabpanel-${activeTab.id}`}
                            aria-labelledby={`tabdesc-${activeTab.id}`}>

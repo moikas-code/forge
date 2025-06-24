@@ -20,6 +20,7 @@ export function useKeyboardShortcuts() {
     setActiveTab,
     toggleSidebar,
     toggleBottomPanel,
+    getMostUsedTabType,
   } = useLayoutStore();
 
   // Helper to check if modifier keys match
@@ -67,8 +68,29 @@ export function useKeyboardShortcuts() {
       key: 't',
       cmd: true,
       ctrl: true,
-      description: 'New terminal tab',
-      handler: () => addTab({ title: 'Terminal', type: 'terminal' }),
+      description: 'New tab (most used type)',
+      handler: () => {
+        const mostUsedType = getMostUsedTabType();
+        const tabConfig = {
+          browser: { title: 'New Tab', path: 'https://moikas.com' },
+          editor: { title: 'Untitled' },
+          terminal: { title: 'Terminal' },
+          explorer: { title: 'Files' },
+          image: { title: 'Image Studio' },
+          audio: { title: 'Audio Studio' },
+          video: { title: 'Video Studio' },
+          '3d': { title: '3D Studio' },
+          game: { title: 'Game Builder' },
+          ai: { title: 'AI Hub' }
+        };
+        
+        const config = tabConfig[mostUsedType] || tabConfig.browser;
+        addTab({
+          title: config.title,
+          type: mostUsedType,
+          ...(config.path && { path: config.path })
+        });
+      },
     },
     {
       key: 'w',

@@ -26,6 +26,7 @@ export interface LayoutState {
   isSidebarCollapsed: boolean;
   isBottomPanelCollapsed: boolean;
   isMobileSidebarOpen: boolean;
+  tabTypeUsageCount: Record<string, number>;
   
   setMode: (mode: AppMode) => void;
   setTheme: (theme: Theme) => void;
@@ -44,6 +45,7 @@ export interface LayoutState {
   toggleMobileSidebar: () => void;
   setMobileSidebarOpen: (isOpen: boolean) => void;
   resetLayout: () => void;
+  getMostUsedTabType: () => string;
 }
 
 const DEFAULT_SIDEBAR_WIDTH = 240;
@@ -67,6 +69,7 @@ export const useLayoutStore = create<LayoutState>()(
       isSidebarCollapsed: false,
       isBottomPanelCollapsed: true,
       isMobileSidebarOpen: false,
+      tabTypeUsageCount: {},
       
       setMode: (mode) => set({ mode }),
       
@@ -87,9 +90,14 @@ export const useLayoutStore = create<LayoutState>()(
         
         const updatedTabs = state.tabs.map(t => ({ ...t, isActive: false }));
         
+        // Update usage count
+        const updatedUsageCount = { ...state.tabTypeUsageCount };
+        updatedUsageCount[tab.type] = (updatedUsageCount[tab.type] || 0) + 1;
+        
         return {
           tabs: [...updatedTabs, newTab],
           activeTabId: newTab.id,
+          tabTypeUsageCount: updatedUsageCount,
         };
       }),
       
@@ -174,6 +182,29 @@ export const useLayoutStore = create<LayoutState>()(
         isBottomPanelCollapsed: true,
         isMobileSidebarOpen: false,
       })),
+      
+      getMostUsedTabType: () => {
+        const state = get();
+        const { tabTypeUsageCount } = state;
+        
+        // If no usage data, default to browser
+        if (Object.keys(tabTypeUsageCount).length === 0) {
+          return 'browser';
+        }
+        
+        // Find the most used type
+        let mostUsedType = 'browser';
+        let maxCount = 0;
+        
+        for (const [type, count] of Object.entries(tabTypeUsageCount)) {
+          if (count > maxCount) {
+            maxCount = count;
+            mostUsedType = type;
+          }
+        }
+        
+        return mostUsedType;
+      },
     }),
     {
       name: 'forge-moi-layout',
@@ -185,6 +216,7 @@ export const useLayoutStore = create<LayoutState>()(
         bottomPanelHeight: state.bottomPanelHeight,
         isSidebarCollapsed: state.isSidebarCollapsed,
         isBottomPanelCollapsed: state.isBottomPanelCollapsed,
+        tabTypeUsageCount: state.tabTypeUsageCount,
       }),
       onRehydrateStorage: () => (state) => {
         // Apply theme on store rehydration

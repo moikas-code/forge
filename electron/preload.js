@@ -55,6 +55,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
     openDevTools: (id) => ipcRenderer.invoke('browser:openDevTools', id),
     closeDevTools: (id) => ipcRenderer.invoke('browser:closeDevTools', id),
     captureScreenshot: (id) => ipcRenderer.invoke('browser:captureScreenshot', id),
+    captureRegion: (id, rect) => ipcRenderer.invoke('browser:captureRegion', id, rect),
+    saveScreenshot: (id, filePath) => ipcRenderer.invoke('browser:saveScreenshot', id, filePath),
+    startRecording: (id) => ipcRenderer.invoke('browser:startRecording', id),
+    stopRecording: (id) => ipcRenderer.invoke('browser:stopRecording', id),
+    getRecordingStatus: (id) => ipcRenderer.invoke('browser:getRecordingStatus', id),
     getUrl: (id) => ipcRenderer.invoke('browser:getUrl', id),
     getTitle: (id) => ipcRenderer.invoke('browser:getTitle', id),
     canGoBack: (id) => ipcRenderer.invoke('browser:canGoBack', id),
@@ -70,6 +75,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     },
     onLoadStop: (callback) => {
       ipcRenderer.on('browser:loadStop', (event, data) => callback(data));
+    },
+    onNewTabRequest: (callback) => {
+      ipcRenderer.on('browser:newTabRequest', (event, data) => callback(data));
     },
   },
 

@@ -120,8 +120,9 @@ export function MinimalSidebar() {
     // If shift-clicked, always create a new tab
     if (isShiftClick) {
       addTab({
-        title: item.label,
+        title: item.type === 'browser' ? 'New Tab' : item.label,
         type: item.type as any,
+        ...(item.type === 'browser' && { path: 'https://moikas.com' })
       });
       announce_new_tab(item.label);
       return;
@@ -140,8 +141,9 @@ export function MinimalSidebar() {
     } else {
       // Create new tab
       addTab({
-        title: item.label,
+        title: item.type === 'browser' ? 'New Tab' : item.label,
         type: item.type as any,
+        ...(item.type === 'browser' && { path: 'https://moikas.com' })
       });
       announce_new_tab(item.label);
     }
@@ -167,7 +169,7 @@ export function MinimalSidebar() {
 
   return (
     <TooltipProvider>
-      <aside className="sidebar w-[50px] flex flex-col h-full relative bg-cyber-black border-r border-cyber-purple/50">
+      <aside className="sidebar min-w-[50px] w-[50px] flex flex-col h-full relative bg-cyber-black border-r border-cyber-purple/50 z-10">
         {/* Glow effect */}
         <div className="absolute inset-0 bg-gradient-to-r from-cyber-purple/5 to-transparent pointer-events-none" />
         
@@ -219,7 +221,7 @@ export function MinimalSidebar() {
                 </TooltipTrigger>
                 <TooltipContent 
                   side="right" 
-                  className="bg-cyber-black border border-cyber-purple text-cyber-gray-200 shadow-[0_0_20px_rgba(147,51,234,0.4)]"
+                  className="bg-cyber-black border border-cyber-purple text-cyber-gray-200 shadow-[0_0_20px_rgba(147,51,234,0.4)] z-[100]"
                 >
                   <div className="space-y-1">
                     <p className="font-semibold text-cyber-purple gradient-text-animate">{item.label}</p>
@@ -246,7 +248,7 @@ export function MinimalSidebar() {
                 <Command size={20} />
               </Button>
             </TooltipTrigger>
-            <TooltipContent side="right" className="bg-cyber-black border-cyber-purple/50">
+            <TooltipContent side="right" className="bg-cyber-black border-cyber-purple/50 z-[100]">
               <p>Command Palette</p>
               <p className="text-xs text-cyber-gray-400">Cmd+K</p>
             </TooltipContent>
@@ -264,7 +266,7 @@ export function MinimalSidebar() {
                 <Settings size={20} />
               </Button>
             </TooltipTrigger>
-            <TooltipContent side="right" className="bg-cyber-black border-cyber-purple/50">
+            <TooltipContent side="right" className="bg-cyber-black border-cyber-purple/50 z-[100]">
               <p>Settings</p>
             </TooltipContent>
           </Tooltip>

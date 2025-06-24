@@ -1,10 +1,10 @@
 {
   "name": "forge-moi",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.0.0",
   "main": "electron/main.js",
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",

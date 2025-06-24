@@ -15,6 +15,7 @@ export class BrowserService {
   private titleListeners = new Map<string, (title: string) => void>();
   private loadStartListeners = new Map<string, () => void>();
   private loadStopListeners = new Map<string, () => void>();
+  private newTabRequestListener: ((data: { url: string; disposition: string }) => void) | null = null;
 
   constructor() {
     if (!this.api) {
@@ -47,6 +48,12 @@ export class BrowserService {
       const listener = this.loadStopListeners.get(event.id);
       if (listener) {
         listener();
+      }
+    });
+
+    this.api.browser.onNewTabRequest((data: { url: string; disposition: string }) => {
+      if (this.newTabRequestListener) {
+        this.newTabRequestListener(data);
       }
     });
   }
@@ -118,6 +125,26 @@ export class BrowserService {
     return this.api.browser.captureScreenshot(id);
   }
 
+  async captureRegion(id: string, rect: { x: number; y: number; width: number; height: number }): Promise<string> {
+    if (!this.api) throw new Error('Electron API not available');
+    return this.api.browser.captureRegion(id, rect);
+  }
+
+  async startRecording(id: string): Promise<{ sourceId: string; bounds: BrowserBounds }> {
+    if (!this.api) throw new Error('Electron API not available');
+    return this.api.browser.startRecording(id);
+  }
+
+  async stopRecording(id: string): Promise<{ duration: number }> {
+    if (!this.api) throw new Error('Electron API not available');
+    return this.api.browser.stopRecording(id);
+  }
+
+  async getRecordingStatus(id: string): Promise<boolean> {
+    if (!this.api) throw new Error('Electron API not available');
+    return this.api.browser.getRecordingStatus(id);
+  }
+
   async getUrl(id: string): Promise<string> {
     if (!this.api) throw new Error('Electron API not available');
     return this.api.browser.getUrl(id);
@@ -155,17 +182,23 @@ export class BrowserService {
     this.loadStopListeners.set(id, callback);
   }
 
+  onNewTabRequest(callback: (data: { url: string; disposition: string }) => void): void {
+    this.newTabRequestListener = callback;
+  }
+
   // Cleanup all listeners
   cleanup(): void {
     this.navigateListeners.clear();
     this.titleListeners.clear();
     this.loadStartListeners.clear();
     this.loadStopListeners.clear();
+    this.newTabRequestListener = null;
     if (this.api) {
       this.api.removeAllListeners('browser:navigate');
       this.api.removeAllListeners('browser:titleUpdate');
       this.api.removeAllListeners('browser:loadStart');
       this.api.removeAllListeners('browser:loadStop');
+      this.api.removeAllListeners('browser:newTabRequest');
     }
   }
 }

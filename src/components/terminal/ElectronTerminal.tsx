@@ -26,6 +26,7 @@ interface TerminalProps {
   title?: string;
   aria_label?: string;
   aria_describedby?: string;
+  autoFocus?: boolean;
 }
 
 export function ElectronTerminal({ 
@@ -37,7 +38,8 @@ export function ElectronTerminal({
   show_window_chrome = false,
   title = 'Terminal',
   aria_label,
-  aria_describedby
+  aria_describedby,
+  autoFocus = false
 }: TerminalProps) {
   const terminal_ref = useRef<HTMLDivElement>(null);
   const container_ref = useRef<HTMLDivElement>(null);
@@ -45,6 +47,7 @@ export function ElectronTerminal({
   const fit_addon_ref = useRef<any>(null);
   const resize_observer_ref = useRef<ResizeObserver | null>(null);
   const [terminal_id, set_terminal_id] = useState<string | null>(terminalId || null);
+  const session_id_ref = useRef<string | null>(null);
   const performance_manager_ref = useRef<TerminalPerformanceManager | null>(null);
   const actions_ref = useRef<TerminalActions | null>(null);
   const terminal_service_ref = useRef(getTerminalService());
@@ -109,9 +112,7 @@ export function ElectronTerminal({
       const CanvasAddon = (await import('@xterm/addon-canvas')).CanvasAddon;
       const ClipboardAddon = (await import('@xterm/addon-clipboard')).ClipboardAddon;
       
-      // Create performance manager
-      performance_manager_ref.current = create_terminal_performance_manager();
-      performance_manager_ref.current.start_metric('terminal_initialization');
+      // Performance tracking will be initialized after terminal is created
       
       // Create Electron terminal session
       const session = await terminal_service_ref.current.create({
@@ -120,6 +121,9 @@ export function ElectronTerminal({
       });
       
       set_terminal_id(session.id);
+      session_id_ref.current = session.id;
+      
+      console.log('[ElectronTerminal] Created terminal session:', session.id);
       
       // Initialize xterm
       const term = new Terminal({
@@ -136,12 +140,17 @@ export function ElectronTerminal({
         fastScrollModifier: 'ctrl',
         fastScrollSensitivity: 5,
         scrollSensitivity: 1,
-        windowsMode: navigator.platform.includes('Win'),
+        windowsMode: navigator.userAgent.includes('Windows'),
         // Accessibility
         screenReaderMode: false
       });
       
       xterm_ref.current = term;
+      
+      // Create performance manager now that terminal is initialized
+      performance_manager_ref.current = create_terminal_performance_manager(term, {
+        debug: true
+      });
       
       // Add addons
       const fit_addon = new FitAddon();
@@ -161,35 +170,61 @@ export function ElectronTerminal({
       
       // Open terminal
       if (terminal_ref.current) {
+        console.log('[ElectronTerminal] Opening terminal in DOM element');
         term.open(terminal_ref.current);
+        console.log('[ElectronTerminal] Terminal opened, rows:', term.rows, 'cols:', term.cols);
         
         // Fit terminal after opening
         setTimeout(() => {
           if (fit_addon_ref.current) {
+            console.log('[ElectronTerminal] Fitting terminal to container');
             fit_addon_ref.current.fit();
+            console.log('[ElectronTerminal] Terminal fitted, new size - rows:', term.rows, 'cols:', term.cols);
+          }
+          // Focus terminal if autoFocus is true
+          if (autoFocus && xterm_ref.current) {
+            xterm_ref.current.focus();
           }
         }, 0);
+      } else {
+        console.error('[ElectronTerminal] No terminal DOM element found!');
       }
       
       // Set up terminal event handlers
       term.onData((data) => {
-        if (terminal_id || session.id) {
-          terminal_service_ref.current.write(terminal_id || session.id, data);
+        const currentSessionId = session_id_ref.current || terminal_id;
+        if (currentSessionId) {
+          console.log('[ElectronTerminal] Writing data to terminal:', currentSessionId, 'data length:', data.length);
+          terminal_service_ref.current.write(currentSessionId, data);
+        } else {
+          console.error('[ElectronTerminal] No session ID available for writing data');
         }
       });
       
       term.onResize((size) => {
-        if (terminal_id || session.id) {
-          terminal_service_ref.current.resize(terminal_id || session.id, size.cols, size.rows);
+        const currentSessionId = session_id_ref.current || terminal_id;
+        if (currentSessionId) {
+          terminal_service_ref.current.resize(currentSessionId, size.cols, size.rows);
         }
       });
       
-      // Set up Electron event listeners
+      // Set up Electron event listeners BEFORE opening terminal
       terminal_service_ref.current.onData(session.id, (data) => {
+        console.log('[ElectronTerminal] Received data from backend:', data.length, 'bytes');
         if (xterm_ref.current && !xterm_ref.current.disposed) {
+          // Temporarily bypass performance manager to ensure basic functionality
+          console.log('[ElectronTerminal] Writing directly to xterm (bypassing performance manager)');
           const decoder = new TextDecoder();
           const text = decoder.decode(data);
-          xterm_ref.current.write(text);
+          console.log('[ElectronTerminal] Decoded text:', JSON.stringify(text.substring(0, 100)));
+          try {
+            xterm_ref.current.write(text);
+            console.log('[ElectronTerminal] Successfully wrote to xterm');
+          } catch (error) {
+            console.error('[ElectronTerminal] Error writing to xterm:', error);
+          }
+        } else {
+          console.error('[ElectronTerminal] xterm not available or disposed');
         }
       });
       
@@ -199,41 +234,32 @@ export function ElectronTerminal({
         }
       });
       
-      // Store terminal instance
-      useTerminalStore.getState().add_terminal_session({
-        id: session.id,
-        title: title || 'Terminal',
-        type: 'terminal',
-        cwd: session.cwd,
-        status: 'active',
-        theme_id: theme_id || 'default',
-        font_size: 14,
-        cols: 80,
-        rows: 24,
-        pane_id: pane_id
-      });
-      
-      performance_manager_ref.current.end_metric('terminal_initialization');
+      // For now, just set the terminal ID from the Electron session
+      // The terminalStore seems to be designed for a different purpose
+      // We'll use the Electron session ID directly
       
     } catch (error) {
       console.error('[ElectronTerminal] Failed to initialize:', error);
     }
-  }, [terminal_id, pane_id, theme_id, title, current_theme]);
+  }, [terminal_id, pane_id, theme_id, title, current_theme, autoFocus]);
   
   // Initialize terminal on mount
   useEffect(() => {
     initialize_terminal();
     
     return () => {
+      if (performance_manager_ref.current) {
+        performance_manager_ref.current.dispose();
+      }
       if (xterm_ref.current && !xterm_ref.current.disposed) {
         xterm_ref.current.dispose();
       }
       if (resize_observer_ref.current) {
         resize_observer_ref.current.disconnect();
       }
-      if (terminal_id) {
-        terminal_service_ref.current.close(terminal_id);
-        useTerminalStore.getState().remove_terminal_session(terminal_id);
+      const sessionToClose = session_id_ref.current || terminal_id;
+      if (sessionToClose) {
+        terminal_service_ref.current.close(sessionToClose);
       }
     };
   }, []);
@@ -291,8 +317,9 @@ export function ElectronTerminal({
       if (xterm_ref.current && !xterm_ref.current.disposed) {
         try {
           const text = await navigator.clipboard.readText();
-          if (text && terminal_id) {
-            terminal_service_ref.current.write(terminal_id, text);
+          const currentSessionId = session_id_ref.current || terminal_id;
+          if (text && currentSessionId) {
+            terminal_service_ref.current.write(currentSessionId, text);
           }
         } catch (err) {
           console.error('Failed to paste:', err);
@@ -322,7 +349,7 @@ export function ElectronTerminal({
   return (
     <div 
       ref={container_ref} 
-      className={`terminal-container h-full bg-gray-900 ${className || ''}`}
+      className={`terminal-container h-full bg-gray-900 flex flex-col ${className || ''}`}
       role="region"
       aria-label={aria_label || `Terminal ${terminal_id || ''}`}
       aria-describedby={aria_describedby}
@@ -330,16 +357,18 @@ export function ElectronTerminal({
       {show_window_chrome && (
         <TerminalWindowChrome 
           title={title} 
-          onClose={() => {
-            if (terminal_id) {
-              terminal_service_ref.current.close(terminal_id);
+          status="running"
+          on_close={() => {
+            const currentSessionId = session_id_ref.current || terminal_id;
+            if (currentSessionId) {
+              terminal_service_ref.current.close(currentSessionId);
             }
           }}
         />
       )}
       <div 
         ref={terminal_ref} 
-        className="terminal-content h-full w-full"
+        className="terminal-wrapper flex-1"
         role="application"
         aria-label="Terminal emulator"
       />

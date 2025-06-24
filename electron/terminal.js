@@ -25,8 +25,12 @@ class TerminalSession {
     this.rows = options.rows || 24;
     this.history = [];
     
+    // Determine shell arguments based on shell type
+    const shellArgs = this.getShellArgs();
+    console.log(`[Terminal Backend] Spawning shell: ${this.shell} with args:`, shellArgs);
+    
     // Create PTY instance
-    this.pty = pty.spawn(this.shell, [], {
+    this.pty = pty.spawn(this.shell, shellArgs, {
       name: 'xterm-256color',
       cols: this.cols,
       rows: this.rows,
@@ -34,6 +38,38 @@ class TerminalSession {
       env: this.env,
       useConpty: process.platform === 'win32'
     });
+    
+    console.log(`[Terminal Backend] PTY spawned successfully for terminal ${id}`);
+    
+    // Send initial newline after a short delay to trigger shell prompt
+    setTimeout(() => {
+      if (this.pty && !this.pty.killed) {
+        console.log(`[Terminal Backend] Sending initial newline to trigger prompt for terminal ${id}`);
+        this.pty.write('\n');
+      }
+    }, 100);
+  }
+  
+  getShellArgs() {
+    const shellName = this.shell.split('/').pop().split('\\').pop();
+    
+    // For bash, zsh, and sh, use interactive mode
+    if (shellName === 'bash' || shellName === 'zsh' || shellName === 'sh') {
+      return ['-i'];
+    }
+    
+    // For fish, use interactive mode
+    if (shellName === 'fish') {
+      return ['-i'];
+    }
+    
+    // For Windows cmd.exe or PowerShell, no special args needed
+    if (shellName === 'cmd.exe' || shellName === 'powershell.exe' || shellName === 'pwsh.exe') {
+      return [];
+    }
+    
+    // Default: try interactive mode for unknown shells
+    return ['-i'];
   }
 
   write(data) {
@@ -85,6 +121,7 @@ function setupTerminalHandlers(ipcMain) {
   // Create a new terminal
   ipcMain.handle('terminal:create', async (event, options = {}) => {
     const id = options.id || `terminal_${uuidv4()}`;
+    console.log(`[Terminal Backend] Creating terminal session ${id}`);
     const session = new TerminalSession(id, options);
     
     // Store the session
@@ -94,9 +131,14 @@ function setupTerminalHandlers(ipcMain) {
     // Set up data handler
     session.pty.onData((data) => {
       // Send data to renderer
+      const dataArray = Array.from(Buffer.from(data));
+      console.log(`[Terminal Backend] Sending data from terminal ${id}:`, dataArray.length, 'bytes');
+      // Log first 100 chars of output for debugging
+      const preview = data.substring(0, 100).replace(/\r/g, '\\r').replace(/\n/g, '\\n');
+      console.log(`[Terminal Backend] Data preview: "${preview}"`);
       event.sender.send('terminal:data', {
         terminalId: id,
-        data: Array.from(Buffer.from(data))
+        data: dataArray
       });
     });
     
@@ -122,11 +164,15 @@ function setupTerminalHandlers(ipcMain) {
   ipcMain.handle('terminal:write', async (event, id, data) => {
     const session = terminals.get(id);
     if (!session) {
+      console.error(`[Terminal Backend] Terminal ${id} not found`);
       throw new Error(`Terminal ${id} not found`);
     }
     
     // Convert array of numbers back to string
-    const str = String.fromCharCode(...data);
+    // Use Buffer for better performance and to handle larger data
+    const buffer = Buffer.from(data);
+    const str = buffer.toString('utf8');
+    console.log(`[Terminal Backend] Writing to terminal ${id}:`, str.length, 'chars');
     session.write(str);
     
     // Track in history
@@ -246,9 +292,18 @@ function setupTerminalHandlers(ipcMain) {
     });
   });
 
-  // Clean up on app quit
+  // Clean up terminals on process exit
   process.on('exit', () => {
-    terminals.forEach(session => session.destroy());
+    // Quick synchronous cleanup
+    terminals.forEach((session) => {
+      try {
+        if (session.pty && !session.pty.killed) {
+          session.pty.kill();
+        }
+      } catch (e) {
+        // Ignore errors during final cleanup
+      }
+    });
   });
 }
 

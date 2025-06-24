@@ -70,39 +70,6 @@ export function useFileWatcher(options: FileWatcherOptions = {}) {
     }
   }, [showNotification]);
 
-  const watch_file = useCallback(async (filePath: string) => {
-    try {
-      if (watchedFiles.current.has(filePath)) return;
-      
-      const fs = getFileSystemService();
-      await fs.watchFile(filePath, (event: ElectronFileChangeEvent) => {
-        // Convert Electron event to our FileChangeEvent format
-        const fileChangeEvent: FileChangeEvent = {
-          path: event.path,
-          change_type: event.type === 'change' ? 'modified' : 
-                       event.type === 'rename' ? 'renamed' : 
-                       event.type === 'delete' ? 'deleted' : 'modified',
-          timestamp: Date.now()
-        };
-        handleFileChange(fileChangeEvent);
-      });
-      watchedFiles.current.add(filePath);
-    } catch (error) {
-      console.error('Failed to watch file:', error);
-      show_file_change_notification(`Failed to watch file: ${filePath}`, 'error');
-    }
-  }, [show_file_change_notification, handleFileChange]);
-
-  const unwatch_file = useCallback(async (filePath: string) => {
-    try {
-      const fs = getFileSystemService();
-      await fs.unwatchFile(filePath);
-      watchedFiles.current.delete(filePath);
-    } catch (error) {
-      console.error('Failed to unwatch file:', error);
-    }
-  }, []);
-
   const handleFileChange = useCallback(async (event: FileChangeEvent) => {
     const { path, change_type, timestamp } = event;
     
@@ -177,6 +144,39 @@ export function useFileWatcher(options: FileWatcherOptions = {}) {
     // Call custom handler
     onFileChanged?.(event);
   }, [tabs, getEditorState, setEditorState, updateTab, show_file_change_notification, onFileChanged, onFileDeleted, onFileRenamed]);
+
+  const watch_file = useCallback(async (filePath: string) => {
+    try {
+      if (watchedFiles.current.has(filePath)) return;
+      
+      const fs = getFileSystemService();
+      await fs.watchFile(filePath, (event: ElectronFileChangeEvent) => {
+        // Convert Electron event to our FileChangeEvent format
+        const fileChangeEvent: FileChangeEvent = {
+          path: event.path,
+          change_type: event.type === 'change' ? 'modified' : 
+                       event.type === 'rename' ? 'renamed' : 
+                       event.type === 'delete' ? 'deleted' : 'modified',
+          timestamp: Date.now()
+        };
+        handleFileChange(fileChangeEvent);
+      });
+      watchedFiles.current.add(filePath);
+    } catch (error) {
+      console.error('Failed to watch file:', error);
+      show_file_change_notification(`Failed to watch file: ${filePath}`, 'error');
+    }
+  }, [show_file_change_notification, handleFileChange]);
+
+  const unwatch_file = useCallback(async (filePath: string) => {
+    try {
+      const fs = getFileSystemService();
+      await fs.unwatchFile(filePath);
+      watchedFiles.current.delete(filePath);
+    } catch (error) {
+      console.error('Failed to unwatch file:', error);
+    }
+  }, []);
 
   // Note: With Electron filesystem service, file watching is handled per-file
   // So we don't need a global event listener like with Tauri

@@ -16,8 +16,9 @@
   outline: none;
   position: relative;
   z-index: 1;
-  min-height: 100px;
-  min-width: 100px;
+  min-height: 200px;
+  min-width: 200px;
+  background-color: #000;
 }
 
 /* Terminal Focus Glow Effect */

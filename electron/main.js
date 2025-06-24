@@ -10,6 +10,7 @@ const isDev = process.env.NODE_ENV === 'development';
 
 let mainWindow;
 let browserViews = new Map();
+let isAppQuitting = false;
 
 function createWindow() {
   // Create the browser window with cyberpunk theme
@@ -56,14 +57,16 @@ function createWindow() {
     console.error('Failed to load:', errorCode, errorDescription, validatedURL);
   });
 
+  // Handle window close event
+  mainWindow.on('close', (event) => {
+    // Don't do cleanup here - it causes "object has been destroyed" errors
+    // Cleanup will be handled in before-quit event
+    isAppQuitting = true;
+  });
+  
   // Handle window closed
   mainWindow.on('closed', () => {
     mainWindow = null;
-    // Clean up all browser views
-    browserViews.forEach((view) => {
-      view.webContents.destroy();
-    });
-    browserViews.clear();
   });
 
   // Handle external links
@@ -72,6 +75,16 @@ function createWindow() {
     return { action: 'deny' };
   });
 }
+
+// Prevent error dialogs on window close
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught Exception:', error);
+  // Don't show dialog if app is quitting
+  if (!isAppQuitting) {
+    isAppQuitting = true;
+    app.quit();
+  }
+});
 
 // This method will be called when Electron has finished initialization
 app.whenReady().then(() => {
@@ -103,8 +116,21 @@ app.whenReady().then(() => {
 app.on('window-all-closed', () => {
   // On macOS, keep app running unless explicitly quit
   if (process.platform !== 'darwin') {
+    isAppQuitting = true;
     app.quit();
   }
+});
+
+// Clean up before app quits
+app.on('before-quit', () => {
+  console.log('App before-quit event');
+  isAppQuitting = true;
+});
+
+// Handle app quit
+app.on('will-quit', (event) => {
+  console.log('App is quitting...');
+  isAppQuitting = true;
 });
 
 // Security: Prevent new window creation

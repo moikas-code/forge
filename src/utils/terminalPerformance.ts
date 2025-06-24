@@ -250,7 +250,11 @@ export class TerminalOutputThrottler {
       while (this.output_queue.length > 0 && processed_count < max_chunks) {
         const data = this.output_queue.shift();
         if (data) {
-          this.terminal.write(data);
+          // Convert Uint8Array to string before writing to terminal
+          const decoder = new TextDecoder();
+          const text = decoder.decode(data);
+          this.log(`Writing to terminal: "${text.substring(0, 50)}..."`);
+          this.terminal.write(text);
           processed_count++;
         }
       }

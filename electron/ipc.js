@@ -82,37 +82,61 @@ function setupIPCHandlers(ipcMain) {
 
   // Window API
   ipcMain.handle('window:minimize', async (event) => {
-    const win = BrowserWindow.fromWebContents(event.sender);
-    if (win) win.minimize();
+    try {
+      const win = BrowserWindow.fromWebContents(event.sender);
+      if (win && !win.isDestroyed()) win.minimize();
+    } catch (e) {
+      console.log('Window operation failed (expected during close)');
+    }
     return true;
   });
 
   ipcMain.handle('window:maximize', async (event) => {
-    const win = BrowserWindow.fromWebContents(event.sender);
-    if (win) win.maximize();
+    try {
+      const win = BrowserWindow.fromWebContents(event.sender);
+      if (win && !win.isDestroyed()) win.maximize();
+    } catch (e) {
+      console.log('Window operation failed (expected during close)');
+    }
     return true;
   });
 
   ipcMain.handle('window:unmaximize', async (event) => {
-    const win = BrowserWindow.fromWebContents(event.sender);
-    if (win) win.unmaximize();
+    try {
+      const win = BrowserWindow.fromWebContents(event.sender);
+      if (win && !win.isDestroyed()) win.unmaximize();
+    } catch (e) {
+      console.log('Window operation failed (expected during close)');
+    }
     return true;
   });
 
   ipcMain.handle('window:close', async (event) => {
-    const win = BrowserWindow.fromWebContents(event.sender);
-    if (win) win.close();
+    try {
+      const win = BrowserWindow.fromWebContents(event.sender);
+      if (win && !win.isDestroyed()) win.close();
+    } catch (e) {
+      console.log('Window operation failed (expected during close)');
+    }
     return true;
   });
 
   ipcMain.handle('window:isMaximized', async (event) => {
-    const win = BrowserWindow.fromWebContents(event.sender);
-    return win ? win.isMaximized() : false;
+    try {
+      const win = BrowserWindow.fromWebContents(event.sender);
+      return win && !win.isDestroyed() ? win.isMaximized() : false;
+    } catch (e) {
+      return false;
+    }
   });
 
   ipcMain.handle('window:setAlwaysOnTop', async (event, flag) => {
-    const win = BrowserWindow.fromWebContents(event.sender);
-    if (win) win.setAlwaysOnTop(flag);
+    try {
+      const win = BrowserWindow.fromWebContents(event.sender);
+      if (win && !win.isDestroyed()) win.setAlwaysOnTop(flag);
+    } catch (e) {
+      console.log('Window operation failed (expected during close)');
+    }
     return true;
   });
 

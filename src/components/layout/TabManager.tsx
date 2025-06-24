@@ -2,15 +2,15 @@
 
 import React, { useRef, useEffect } from 'react';
 import { useLayoutStore } from '@/stores/layoutStore';
-import { X } from 'lucide-react';
+import { X, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useTabAnnouncer } from '@/hooks/useAnnounce';
 import { cn } from '@/lib/utils';
 
 export function TabManager() {
-  const { tabs, activeTabId, setActiveTab, removeTab } = useLayoutStore();
+  const { tabs, activeTabId, setActiveTab, removeTab, addTab, getMostUsedTabType } = useLayoutStore();
   const tab_list_ref = useRef<HTMLDivElement>(null);
-  const { announce_tab_change, announce_tab_closed } = useTabAnnouncer();
+  const { announce_tab_change, announce_tab_closed, announce_new_tab } = useTabAnnouncer();
   
   if (tabs.length === 0) {
     return (
@@ -74,6 +74,47 @@ export function TabManager() {
       announce_tab_change(tab.title, tab_index + 1, tabs.length);
     }
   };
+
+  const handle_new_tab = () => {
+    const mostUsedType = getMostUsedTabType();
+    const tabConfig = {
+      browser: { title: 'New Tab', path: 'https://moikas.com', label: 'Browser' },
+      editor: { title: 'Untitled', label: 'Code Editor' },
+      terminal: { title: 'Terminal', label: 'Terminal' },
+      explorer: { title: 'Files', label: 'File Explorer' },
+      image: { title: 'Image Studio', label: 'Image Studio' },
+      audio: { title: 'Audio Studio', label: 'Audio Studio' },
+      video: { title: 'Video Studio', label: 'Video Studio' },
+      '3d': { title: '3D Studio', label: '3D Studio' },
+      game: { title: 'Game Builder', label: 'Game Builder' },
+      ai: { title: 'AI Hub', label: 'AI Hub' }
+    };
+
+    const config = tabConfig[mostUsedType] || tabConfig.browser;
+    addTab({
+      title: config.title,
+      type: mostUsedType,
+      ...(config.path && { path: config.path })
+    });
+    announce_new_tab(config.title);
+  };
+
+  const getMostUsedTabLabel = () => {
+    const mostUsedType = getMostUsedTabType();
+    const labels = {
+      browser: 'Browser',
+      editor: 'Code Editor',
+      terminal: 'Terminal',
+      explorer: 'File Explorer',
+      image: 'Image Studio',
+      audio: 'Audio Studio',
+      video: 'Video Studio',
+      '3d': '3D Studio',
+      game: 'Game Builder',
+      ai: 'AI Hub'
+    };
+    return labels[mostUsedType] || 'Browser';
+  };
   
   return (
     <div className="h-[40px] flex items-center bg-cyber-black border-b border-cyber-purple/30 overflow-x-auto scrollbar-auto"
@@ -136,6 +177,22 @@ export function TabManager() {
             </Button>
           </div>
         ))}
+        
+        {/* New Tab Button */}
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={handle_new_tab}
+          className={cn(
+            "h-8 w-8 ml-1 mr-2",
+            "text-cyber-gray-400 hover:text-cyber-purple",
+            "hover:bg-cyber-purple/20 transition-all duration-200"
+          )}
+          title={`Create new ${getMostUsedTabLabel()} tab (Cmd/Ctrl+T)`}
+          aria-label={`Create new ${getMostUsedTabLabel()} tab`}
+        >
+          <Plus size={16} />
+        </Button>
       </div>
     </div>
   );

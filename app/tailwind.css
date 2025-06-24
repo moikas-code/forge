@@ -464,24 +464,14 @@ body {
 
 /* Responsive breakpoints for layout */
 @media (max-width: 768px) {
-  /* Hide sidebar on mobile by default */
+  /* Keep sidebar visible on mobile, just make it smaller */
   .sidebar {
-    position: fixed;
-    left: 0;
-    top: var(--titlebar-height);
-    bottom: 0;
-    z-index: 40;
-    transform: translateX(-100%);
-    transition: transform 0.3s ease;
+    width: 50px !important; /* Force collapsed state on mobile */
   }
   
-  .sidebar.open {
-    transform: translateX(0);
-  }
-  
-  /* Adjust main content to full width on mobile */
-  .main-content {
-    margin-left: 0;
+  /* Hide text labels on mobile, keep icons visible */
+  .sidebar span {
+    display: none;
   }
   
   /* Stack buttons vertically on mobile */
@@ -524,8 +514,8 @@ body {
 
 /* Tablet adjustments */
 @media (min-width: 768px) and (max-width: 1024px) {
-  /* Narrower sidebar on tablets */
-  .sidebar {
+  /* Keep sidebar at reasonable width on tablets */
+  .sidebar:not(.collapsed) {
     width: 200px;
   }
   

@@ -49,6 +49,11 @@ export interface ElectronAPI {
     openDevTools: (id: string) => Promise<boolean>;
     closeDevTools: (id: string) => Promise<boolean>;
     captureScreenshot: (id: string) => Promise<string>;
+    captureRegion: (id: string, rect: { x: number; y: number; width: number; height: number }) => Promise<string>;
+    saveScreenshot: (id: string, filePath: string) => Promise<string>;
+    startRecording: (id: string) => Promise<{ sourceId: string; bounds: BrowserBounds }>;
+    stopRecording: (id: string) => Promise<{ duration: number }>;
+    getRecordingStatus: (id: string) => Promise<boolean>;
     getUrl: (id: string) => Promise<string>;
     getTitle: (id: string) => Promise<string>;
     canGoBack: (id: string) => Promise<boolean>;
@@ -57,6 +62,7 @@ export interface ElectronAPI {
     onTitleUpdate: (callback: (data: BrowserTitleEvent) => void) => void;
     onLoadStart: (callback: (data: BrowserLoadEvent) => void) => void;
     onLoadStop: (callback: (data: BrowserLoadEvent) => void) => void;
+    onNewTabRequest: (callback: (data: BrowserNewTabEvent) => void) => void;
   };
   editor: {
     saveSession: (sessionData: EditorSession) => Promise<string>;
@@ -177,6 +183,11 @@ export interface BrowserTitleEvent {
 
 export interface BrowserLoadEvent {
   id: string;
+}
+
+export interface BrowserNewTabEvent {
+  url: string;
+  disposition: string;
 }
 
 export interface EditorSession {
