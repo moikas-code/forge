@@ -14,18 +14,7 @@
     "electron:dist": "electron-builder --publish=never",
     "postinstall": "electron-rebuild",
     "storybook": "storybook dev -p 6006",
-    "build-storybook": "storybook build",
-    "test": "vitest",
-    "test:ui": "vitest --ui",
-    "test:coverage": "vitest run --coverage",
-    "test:e2e": "playwright test",
-    "test:e2e:ui": "playwright test --ui",
-    "test:e2e:headed": "playwright test --headed",
-    "test:perf": "vitest run --config vitest.perf.config.ts",
-    "test:all": "bun run scripts/test-runner.ts",
-    "test:integration": "vitest run src/test/integration/",
-    "perf:monitor": "bun run scripts/performance-monitor.ts",
-    "perf:benchmark": "bun run scripts/performance-monitor.ts --benchmark"
+    "build-storybook": "storybook build"
   },
   "dependencies": {
     "@fal-ai/client": "^1.5.0",
@@ -66,7 +55,6 @@
     "zustand": "^5.0.5"
   },
   "devDependencies": {
-    "@playwright/test": "^1.53.1",
     "@storybook/addon-a11y": "^8.6.14",
     "@storybook/addon-docs": "^8.6.14",
     "@storybook/addon-essentials": "^8.6.14",
@@ -81,15 +69,9 @@
     "@storybook/test": "^8.6.14",
     "@storybook/theming": "^8.6.14",
     "@tailwindcss/postcss": "^4.1.10",
-    "@testing-library/jest-dom": "^6.6.3",
-    "@testing-library/react": "^16.3.0",
-    "@testing-library/user-event": "^14.6.1",
     "@types/node": "^24.0.3",
     "@types/react": "^18.3.23",
     "@types/react-dom": "^18.3.7",
-    "@vitejs/plugin-react": "^4.6.0",
-    "@vitest/coverage-v8": "^2.1.9",
-    "@vitest/ui": "^2.1.9",
     "autoprefixer": "^10.4.21",
     "electron": "^36.5.0",
     "electron-builder": "^26.0.12",
@@ -97,11 +79,9 @@
     "eslint": "^9.29.0",
     "eslint-config-next": "^15.3.4",
     "eslint-plugin-storybook": "^9.0.12",
-    "jsdom": "^26.1.0",
     "postcss": "^8.5.6",
     "storybook": "^8.6.14",
     "tailwindcss": "^4.1.10",
-    "typescript": "~5.6.3",
-    "vitest": "^2.1.9"
+    "typescript": "~5.6.3"
   }
 }

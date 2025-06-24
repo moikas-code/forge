@@ -58,7 +58,9 @@ export function ElectronTerminal({
     xtermRef.current = term;
     fitAddonRef.current = fitAddon;
 
-    // Write initial message
+    // Write test messages to verify xterm is working
+    term.write('=== XTerm.js Test ===\r\n');
+    term.write('If you can see this, xterm.js is working!\r\n');
     term.write('Connecting to terminal...\r\n');
 
     // Get terminal service

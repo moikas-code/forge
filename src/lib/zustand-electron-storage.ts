@@ -20,7 +20,22 @@ export const createElectronStorage = (): StateStorage => {
     
     setItem: async (name: string, value: string): Promise<void> => {
       try {
-        const parsed = JSON.parse(value);
+        // Check if value is already a string
+        if (typeof value !== 'string') {
+          console.warn(`Expected string value for ${name}, got ${typeof value}. Converting to string.`);
+          value = JSON.stringify(value);
+        }
+        
+        // Try to parse the JSON string
+        let parsed;
+        try {
+          parsed = JSON.parse(value);
+        } catch (parseError) {
+          // If parsing fails, store as-is
+          console.warn(`Could not parse value for ${name} as JSON, storing as string`);
+          parsed = value;
+        }
+        
         await store.set(name, parsed);
       } catch (error) {
         console.error(`Error setting item ${name} in electron store:`, error);
