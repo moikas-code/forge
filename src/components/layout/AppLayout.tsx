@@ -36,7 +36,7 @@ export function AppLayout() {
   
   // Initialize keyboard shortcuts and skip links
   useKeyboardShortcuts();
-  useSkipLinks();
+  // useSkipLinks();
   
   // Use responsive hook instead of manual state
   const { isMobile, isTouchDevice, isMediumUp } = useResponsive();
@@ -164,7 +164,7 @@ export function AppLayout() {
                       <div 
                         key={tab.id}
                         className={cn(
-                          "absolute inset-0 p-2",
+                          "absolute inset-0 p-1",
                           tab.id !== activeTab?.id && "hidden"
                         )}
                         role="tabpanel"
@@ -186,7 +186,7 @@ export function AppLayout() {
                     
                     {/* Render active non-browser tab */}
                     {activeTab && activeTab.type !== 'browser' && (
-                      <div className="absolute inset-0 p-2"
+                      <div className="absolute inset-0 p-1"
                            role="tabpanel"
                            id={`tabpanel-${activeTab.id}`}
                            aria-labelledby={`tabdesc-${activeTab.id}`}>

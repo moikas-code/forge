@@ -1,4 +1,4 @@
-const { app, BrowserWindow, BrowserView, ipcMain, shell } = require('electron');
+const { app, BrowserWindow, BrowserView, ipcMain, shell, Menu } = require('electron');
 const path = require('path');
 const isDev = process.env.NODE_ENV === 'development';
 
@@ -21,6 +21,7 @@ function createWindow() {
     backgroundColor: '#000000',
     titleBarStyle: 'hiddenInset', // macOS style
     trafficLightPosition: { x: 20, y: 20 },
+    autoHideMenuBar: true, // Hide menu bar on Windows/Linux
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
@@ -74,6 +75,9 @@ function createWindow() {
 
 // This method will be called when Electron has finished initialization
 app.whenReady().then(() => {
+  // Hide the menu bar
+  Menu.setApplicationMenu(null);
+  
   createWindow();
 
   app.on('activate', () => {

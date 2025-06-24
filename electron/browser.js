@@ -1,4 +1,4 @@
-const { BrowserView, shell } = require('electron');
+const { BrowserView, shell, Menu, MenuItem, clipboard } = require('electron');
 const { v4: uuidv4 } = require('uuid');
 
 // Browser view management
@@ -47,6 +47,137 @@ function setupBrowserHandlers(ipcMain, getMainWindow, browserViews) {
     view.webContents.setWindowOpenHandler(({ url }) => {
       shell.openExternal(url);
       return { action: 'deny' };
+    });
+
+    // Context menu handler
+    view.webContents.on('context-menu', (event, params) => {
+      const menu = new Menu();
+
+      // Add navigation items if applicable
+      if (params.canGoBack || params.canGoForward) {
+        if (view.webContents.canGoBack()) {
+          menu.append(new MenuItem({
+            label: 'Back',
+            click: () => view.webContents.goBack()
+          }));
+        }
+        
+        if (view.webContents.canGoForward()) {
+          menu.append(new MenuItem({
+            label: 'Forward',
+            click: () => view.webContents.goForward()
+          }));
+        }
+        
+        menu.append(new MenuItem({ type: 'separator' }));
+      }
+
+      // Add text selection items
+      if (params.selectionText) {
+        menu.append(new MenuItem({
+          label: 'Copy',
+          role: 'copy',
+          enabled: params.editFlags.canCopy
+        }));
+      }
+
+      if (params.editFlags.canPaste) {
+        menu.append(new MenuItem({
+          label: 'Paste',
+          role: 'paste'
+        }));
+      }
+
+      if (params.editFlags.canCut) {
+        menu.append(new MenuItem({
+          label: 'Cut',
+          role: 'cut'
+        }));
+      }
+
+      if (params.selectionText) {
+        menu.append(new MenuItem({ type: 'separator' }));
+        
+        menu.append(new MenuItem({
+          label: `Search for "${params.selectionText.slice(0, 20)}${params.selectionText.length > 20 ? '...' : ''}"`,
+          click: () => {
+            shell.openExternal(`https://www.google.com/search?q=${encodeURIComponent(params.selectionText)}`);
+          }
+        }));
+      }
+
+      // Add link items
+      if (params.linkURL) {
+        if (menu.items.length > 0) {
+          menu.append(new MenuItem({ type: 'separator' }));
+        }
+        
+        menu.append(new MenuItem({
+          label: 'Open Link in External Browser',
+          click: () => shell.openExternal(params.linkURL)
+        }));
+        
+        menu.append(new MenuItem({
+          label: 'Copy Link Address',
+          click: () => {
+            clipboard.writeText(params.linkURL);
+          }
+        }));
+      }
+
+      // Add image items
+      if (params.mediaType === 'image') {
+        if (menu.items.length > 0) {
+          menu.append(new MenuItem({ type: 'separator' }));
+        }
+        
+        menu.append(new MenuItem({
+          label: 'Copy Image',
+          click: () => view.webContents.copyImageAt(params.x, params.y)
+        }));
+        
+        menu.append(new MenuItem({
+          label: 'Copy Image Address',
+          click: () => {
+            clipboard.writeText(params.srcURL);
+          }
+        }));
+        
+        menu.append(new MenuItem({
+          label: 'Open Image in External Browser',
+          click: () => shell.openExternal(params.srcURL)
+        }));
+      }
+
+      // Always add developer tools and page actions
+      if (menu.items.length > 0) {
+        menu.append(new MenuItem({ type: 'separator' }));
+      }
+
+      menu.append(new MenuItem({
+        label: 'Reload',
+        click: () => view.webContents.reload()
+      }));
+
+      menu.append(new MenuItem({
+        label: 'View Page Source',
+        click: () => {
+          const sourceUrl = view.webContents.getURL();
+          shell.openExternal(`view-source:${sourceUrl}`);
+        }
+      }));
+
+      menu.append(new MenuItem({ type: 'separator' }));
+
+      menu.append(new MenuItem({
+        label: 'Inspect Element',
+        click: () => {
+          view.webContents.inspectElement(params.x, params.y);
+        }
+      }));
+
+      // Show the context menu
+      menu.popup();
     });
 
     // Load initial URL if provided
