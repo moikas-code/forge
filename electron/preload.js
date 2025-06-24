@@ -10,10 +10,18 @@ contextBridge.exposeInMainWorld('electronAPI', {
     resize: (id, cols, rows) => ipcRenderer.invoke('terminal:resize', id, cols, rows),
     close: (id) => ipcRenderer.invoke('terminal:close', id),
     onData: (callback) => {
-      ipcRenderer.on('terminal:data', (event, data) => callback(data));
+      console.log('[Preload] Setting up terminal:data listener');
+      ipcRenderer.on('terminal:data', (event, data) => {
+        console.log('[Preload] Received terminal:data event:', data.terminalId, data.data.length, 'bytes');
+        callback(data);
+      });
     },
     onExit: (callback) => {
-      ipcRenderer.on('terminal:exit', (event, data) => callback(data));
+      console.log('[Preload] Setting up terminal:exit listener');
+      ipcRenderer.on('terminal:exit', (event, data) => {
+        console.log('[Preload] Received terminal:exit event:', data);
+        callback(data);
+      });
     },
     getSessionInfo: (id) => ipcRenderer.invoke('terminal:getSessionInfo', id),
     getHistory: (id) => ipcRenderer.invoke('terminal:getHistory', id),
@@ -111,6 +119,17 @@ contextBridge.exposeInMainWorld('electronAPI', {
     close: () => ipcRenderer.invoke('window:close'),
     isMaximized: () => ipcRenderer.invoke('window:isMaximized'),
     setAlwaysOnTop: (flag) => ipcRenderer.invoke('window:setAlwaysOnTop', flag),
+  },
+
+  // Updater API
+  updater: {
+    check: () => ipcRenderer.invoke('updater:check'),
+    download: () => ipcRenderer.invoke('updater:download'),
+    install: () => ipcRenderer.invoke('updater:install'),
+    getVersion: () => ipcRenderer.invoke('updater:getVersion'),
+    onStatus: (callback) => {
+      ipcRenderer.on('updater:status', (event, data) => callback(data));
+    },
   },
 
   // Remove all listeners

@@ -1,40 +1,109 @@
 appId: com.forgeMoi.app
 productName: Forge MOI
+copyright: Copyright © 2024 ${author}
 directories:
   output: dist
   buildResources: build
+
+# Auto-updater configuration
+publish:
+  - provider: github
+    owner: moika  # Replace with your GitHub username
+    repo: forge-moi  # Replace with your repository name
+    releaseType: release
+
+# File patterns
 files:
   - electron/**/*
   - out/**/*
   - node_modules/**/*
   - package.json
+  - "!**/node_modules/*/{CHANGELOG.md,README.md,README,readme.md,readme}"
+  - "!**/node_modules/*/{test,__tests__,tests,powered-test,example,examples}"
+  - "!**/node_modules/*.d.ts"
+  - "!**/node_modules/.bin"
+  - "!**/*.{iml,o,hprof,orig,pyc,pyo,rbc,swp,csproj,sln,xproj}"
+
 extraResources:
   - from: public/
     to: public/
     filter:
       - "**/*"
+
+# macOS configuration
 mac:
   category: public.app-category.developer-tools
   hardenedRuntime: true
   gatekeeperAssess: false
   entitlements: build/entitlements.mac.plist
-  entitlementsInherit: build/entitlements.mac.plist
+  entitlementsInherit: build/entitlements.mac.inherit.plist
   icon: build/icon.icns
+  notarize:
+    teamId: ${env.APPLE_TEAM_ID}
+  target:
+    - target: dmg
+      arch:
+        - x64
+        - arm64
+    - target: zip
+      arch:
+        - x64
+        - arm64
+
+# Windows configuration
 win:
   target:
-    - nsis
-    - zip
+    - target: nsis
+      arch:
+        - x64
+        - ia32
+    - target: zip
   icon: build/icon.ico
+  certificateFile: ${env.WINDOWS_CERT}
+  certificatePassword: ${env.WINDOWS_CERT_PASSWORD}
+  verifyUpdateCodeSignature: true
+  publisherName: "Forge MOI"
+
+# Linux configuration
 linux:
   target:
-    - AppImage
-    - deb
+    - target: AppImage
+      arch:
+        - x64
+        - arm64
+    - target: deb
+      arch:
+        - x64
+        - arm64
+    - target: snap
   icon: build/icon.png
   category: Development
+  synopsis: "AI-powered development studio"
+  description: "Multi-modal AI-powered development studio with integrated browser, terminal, and code editor"
+  maintainer: "Forge MOI Team"
+  vendor: "Forge MOI"
+
+# NSIS installer configuration (Windows)
 nsis:
   oneClick: false
+  perMachine: false
   allowToChangeInstallationDirectory: true
+  allowElevation: true
+  installerIcon: build/icon.ico
+  uninstallerIcon: build/icon.ico
+  installerHeader: build/installerHeader.bmp
+  installerSidebar: build/installerSidebar.bmp
+  include: build/installer.nsh
+  artifactName: ${name}-Setup-${version}.${ext}
+
+# DMG configuration (macOS)
 dmg:
+  background: build/background.tiff
+  icon: build/icon.icns
+  iconSize: 100
+  window:
+    width: 540
+    height: 380
   contents:
     - x: 410
       y: 150
@@ -43,3 +112,13 @@ dmg:
     - x: 130
       y: 150
       type: file
+  artifactName: ${name}-${version}-${arch}.${ext}
+
+# AppImage configuration (Linux)
+appImage:
+  artifactName: ${name}-${version}-${arch}.${ext}
+
+# Snap configuration (Linux)
+snap:
+  grade: stable
+  confinement: classic

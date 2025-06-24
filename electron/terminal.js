@@ -5,6 +5,7 @@ const { v4: uuidv4 } = require('uuid');
 // Store active terminal sessions
 const terminals = new Map();
 const terminalHistory = new Map();
+const terminalWindows = new Map(); // Store window references for each terminal
 
 // Detect the appropriate shell for the platform
 function getDefaultShell() {
@@ -20,7 +21,12 @@ class TerminalSession {
     this.id = id;
     this.shell = options.shell || getDefaultShell();
     this.cwd = options.cwd || process.env.HOME || process.cwd();
-    this.env = { ...process.env, ...options.env };
+    this.env = { 
+      ...process.env, 
+      TERM: 'xterm-256color',
+      COLORTERM: 'truecolor',
+      ...options.env 
+    };
     this.cols = options.cols || 80;
     this.rows = options.rows || 24;
     this.history = [];
@@ -36,7 +42,9 @@ class TerminalSession {
       rows: this.rows,
       cwd: this.cwd,
       env: this.env,
-      useConpty: process.platform === 'win32'
+      useConpty: process.platform === 'win32',
+      handleFlowControl: true,
+      encoding: 'utf8'
     });
     
     console.log(`[Terminal Backend] PTY spawned successfully for terminal ${id}`);
@@ -117,7 +125,7 @@ class TerminalSession {
   }
 }
 
-function setupTerminalHandlers(ipcMain) {
+function setupTerminalHandlers(ipcMain, getMainWindow) {
   // Create a new terminal
   ipcMain.handle('terminal:create', async (event, options = {}) => {
     const id = options.id || `terminal_${uuidv4()}`;
@@ -128,6 +136,16 @@ function setupTerminalHandlers(ipcMain) {
     terminals.set(id, session);
     terminalHistory.set(id, []);
     
+    // Get the main window for sending events
+    const mainWindow = getMainWindow();
+    if (!mainWindow) {
+      console.error('[Terminal Backend] No main window available');
+      throw new Error('Main window not available');
+    }
+    
+    // Store window reference for this terminal
+    terminalWindows.set(id, mainWindow);
+    
     // Set up data handler
     session.pty.onData((data) => {
       // Send data to renderer
@@ -136,21 +154,47 @@ function setupTerminalHandlers(ipcMain) {
       // Log first 100 chars of output for debugging
       const preview = data.substring(0, 100).replace(/\r/g, '\\r').replace(/\n/g, '\\n');
       console.log(`[Terminal Backend] Data preview: "${preview}"`);
-      event.sender.send('terminal:data', {
-        terminalId: id,
-        data: dataArray
-      });
+      
+      // Get the stored window reference
+      const window = terminalWindows.get(id);
+      if (window && !window.isDestroyed()) {
+        // Ensure web contents are ready
+        if (window.webContents.isLoading()) {
+          console.log(`[Terminal Backend] Window still loading, queuing data`);
+          window.webContents.once('did-finish-load', () => {
+            window.webContents.send('terminal:data', {
+              terminalId: id,
+              data: dataArray
+            });
+            console.log(`[Terminal Backend] Event sent after window loaded`);
+          });
+        } else {
+          console.log(`[Terminal Backend] Sending to webContents immediately`);
+          window.webContents.send('terminal:data', {
+            terminalId: id,
+            data: dataArray
+          });
+          console.log(`[Terminal Backend] Event sent successfully`);
+        }
+      } else {
+        console.error('[Terminal Backend] Window for terminal is destroyed or null');
+      }
     });
     
     // Set up exit handler
     session.pty.onExit((exitCode) => {
-      event.sender.send('terminal:exit', {
-        terminalId: id,
-        exitCode: exitCode.exitCode
-      });
+      // Get the stored window reference
+      const window = terminalWindows.get(id);
+      if (window && !window.isDestroyed()) {
+        window.webContents.send('terminal:exit', {
+          terminalId: id,
+          exitCode: exitCode.exitCode
+        });
+      }
       // Clean up
       terminals.delete(id);
       terminalHistory.delete(id);
+      terminalWindows.delete(id);
     });
     
     return {
@@ -209,6 +253,7 @@ function setupTerminalHandlers(ipcMain) {
     session.destroy();
     terminals.delete(id);
     terminalHistory.delete(id);
+    terminalWindows.delete(id);
     return true;
   });
 

@@ -1,0 +1,236 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      releaseType:
+        description: 'Release type'
+        required: true
+        default: 'draft'
+        type: choice
+        options:
+          - draft
+          - prerelease
+          - release
+
+env:
+  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          # Windows
+          - os: windows-latest
+            platform: win32
+            arch: x64
+            name: windows-x64
+          
+          # macOS Intel
+          - os: macos-latest
+            platform: darwin
+            arch: x64
+            name: macos-x64
+          
+          # macOS Apple Silicon
+          - os: macos-latest
+            platform: darwin
+            arch: arm64
+            name: macos-arm64
+          
+          # Linux x64
+          - os: ubuntu-latest
+            platform: linux
+            arch: x64
+            name: linux-x64
+          
+          # Linux ARM64
+          - os: ubuntu-latest
+            platform: linux
+            arch: arm64
+            name: linux-arm64
+
+    runs-on: ${{ matrix.os }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      # Linux specific setup
+      - name: Install Linux dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libarchive-tools rpm
+
+      # macOS code signing setup
+      - name: Setup macOS certificates
+        if: runner.os == 'macOS'
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.CSC_LINK }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          # Create variables
+          CERTIFICATE_PATH=$RUNNER_TEMP/build_certificate.p12
+          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+          
+          # Import certificate from secrets
+          echo -n "$APPLE_CERTIFICATE" | base64 --decode -o $CERTIFICATE_PATH
+          
+          # Create temporary keychain
+          security create-keychain -p "$APPLE_CERTIFICATE_PASSWORD" $KEYCHAIN_PATH
+          security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
+          security unlock-keychain -p "$APPLE_CERTIFICATE_PASSWORD" $KEYCHAIN_PATH
+          
+          # Import certificate to keychain
+          security import $CERTIFICATE_PATH -P "$APPLE_CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
+          security list-keychain -d user -s $KEYCHAIN_PATH
+          
+          # Clean up
+          rm $CERTIFICATE_PATH
+
+      # Windows code signing setup
+      - name: Setup Windows certificates
+        if: runner.os == 'Windows' && env.WINDOWS_CERT != ''
+        env:
+          WINDOWS_CERT: ${{ secrets.WINDOWS_CERT }}
+        run: |
+          New-Item -ItemType directory -Path certificate
+          Set-Content -Path certificate\cert.txt -Value $env:WINDOWS_CERT
+          certutil -decode certificate\cert.txt certificate\cert.pfx
+          Remove-Item certificate\cert.txt
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Build Next.js app
+        run: bun run build
+
+      # Build for specific architecture on macOS
+      - name: Build Electron app (macOS)
+        if: runner.os == 'macOS'
+        env:
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          if [ "${{ matrix.arch }}" = "arm64" ]; then
+            bun run electron:build -- --mac --arm64 --publish always
+          else
+            bun run electron:build -- --mac --x64 --publish always
+          fi
+
+      # Build for Windows
+      - name: Build Electron app (Windows)
+        if: runner.os == 'Windows'
+        env:
+          WINDOWS_CERT: certificate\cert.pfx
+          WINDOWS_CERT_PASSWORD: ${{ secrets.WINDOWS_CERT_PASSWORD }}
+        run: |
+          bun run electron:build -- --win --x64 --ia32 --publish always
+
+      # Build for Linux
+      - name: Build Electron app (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          if [ "${{ matrix.arch }}" = "arm64" ]; then
+            bun run electron:build -- --linux --arm64 --publish always
+          else
+            bun run electron:build -- --linux --x64 --publish always
+          fi
+
+      # Clean up Windows certificate
+      - name: Clean up Windows certificate
+        if: runner.os == 'Windows' && env.WINDOWS_CERT != ''
+        run: |
+          Remove-Item -Path certificate -Recurse -Force
+
+      # Upload artifacts
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.name }}-artifacts
+          path: |
+            dist/*.exe
+            dist/*.msi
+            dist/*.dmg
+            dist/*.zip
+            dist/*.AppImage
+            dist/*.deb
+            dist/*.snap
+            dist/*.rpm
+            dist/*.tar.gz
+            dist/*.yml
+            dist/*.yaml
+          retention-days: 7
+
+  create-release:
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          draft: ${{ github.event.inputs.releaseType == 'draft' }}
+          prerelease: ${{ github.event.inputs.releaseType == 'prerelease' }}
+          body: |
+            ## Forge MOI v${{ github.ref_name }}
+            
+            ### What's New
+            - [Add release notes here]
+            
+            ### Downloads
+            - **Windows**: Download the `.exe` installer for automatic installation
+            - **macOS**: Download the `.dmg` file for your architecture (Intel or Apple Silicon)
+            - **Linux**: Download the `.AppImage`, `.deb`, or `.snap` file based on your distribution
+            
+            ### Auto-Update
+            The app will automatically check for updates and notify you when a new version is available.
+
+      - name: Upload Release Assets
+        run: |
+          for artifact_dir in artifacts/*/; do
+            for file in "$artifact_dir"*; do
+              if [ -f "$file" ]; then
+                echo "Uploading $file"
+                gh release upload "${{ github.ref_name }}" "$file" --clobber
+              fi
+            done
+          done
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

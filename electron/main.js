@@ -8,6 +8,13 @@ const isDev = process.env.NODE_ENV === 'development';
 //   app.quit();
 // }
 
+// Initialize auto-updater
+let appUpdater;
+if (!isDev) {
+  const AppUpdater = require('./updater');
+  appUpdater = new AppUpdater();
+}
+
 let mainWindow;
 let browserViews = new Map();
 let isAppQuitting = false;
@@ -106,10 +113,15 @@ app.whenReady().then(() => {
   const { setupBrowserHandlers } = require('./browser');
   const { setupIPCHandlers } = require('./ipc');
   
-  setupTerminalHandlers(ipcMain);
+  setupTerminalHandlers(ipcMain, () => mainWindow);
   setupFileSystemHandlers(ipcMain);
   setupBrowserHandlers(ipcMain, () => mainWindow, browserViews);
   setupIPCHandlers(ipcMain);
+  
+  // Check for updates on startup
+  if (appUpdater) {
+    appUpdater.checkForUpdatesOnStartup();
+  }
 });
 
 // Quit when all windows are closed
