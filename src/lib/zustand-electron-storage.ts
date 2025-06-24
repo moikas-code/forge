@@ -45,7 +45,7 @@ export const isElectronEnvironment = (): boolean => {
   if (typeof window === 'undefined') {
     return false; // Server-side rendering
   }
-  return !!(window as any).electron;
+  return !!(window as any).electronAPI;
 };
 
 /**

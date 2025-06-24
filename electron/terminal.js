@@ -1,13 +1,10 @@
 const pty = require('node-pty');
-const os = require('os');
 const { v4: uuidv4 } = require('uuid');
 
 // Store active terminal sessions
 const terminals = new Map();
-const terminalHistory = new Map();
-const terminalWindows = new Map(); // Store window references for each terminal
 
-// Detect the appropriate shell for the platform
+// Get default shell
 function getDefaultShell() {
   if (process.platform === 'win32') {
     return process.env.COMSPEC || 'cmd.exe';
@@ -15,232 +12,154 @@ function getDefaultShell() {
   return process.env.SHELL || '/bin/bash';
 }
 
-// Terminal session class
-class TerminalSession {
-  constructor(id, options = {}) {
-    this.id = id;
-    this.shell = options.shell || getDefaultShell();
-    this.cwd = options.cwd || process.env.HOME || process.cwd();
-    this.env = { 
-      ...process.env, 
-      TERM: 'xterm-256color',
-      COLORTERM: 'truecolor',
-      ...options.env 
-    };
-    this.cols = options.cols || 80;
-    this.rows = options.rows || 24;
-    this.history = [];
-    
-    // Determine shell arguments based on shell type
-    const shellArgs = this.getShellArgs();
-    console.log(`[Terminal Backend] Spawning shell: ${this.shell} with args:`, shellArgs);
-    
-    // Create PTY instance
-    this.pty = pty.spawn(this.shell, shellArgs, {
-      name: 'xterm-256color',
-      cols: this.cols,
-      rows: this.rows,
-      cwd: this.cwd,
-      env: this.env,
-      useConpty: process.platform === 'win32',
-      handleFlowControl: true,
-      encoding: 'utf8'
-    });
-    
-    console.log(`[Terminal Backend] PTY spawned successfully for terminal ${id}`);
-    
-    // Send initial newline after a short delay to trigger shell prompt
-    setTimeout(() => {
-      if (this.pty && !this.pty.killed) {
-        console.log(`[Terminal Backend] Sending initial newline to trigger prompt for terminal ${id}`);
-        this.pty.write('\n');
-      }
-    }, 100);
+// Get shell arguments for interactive mode
+function getShellArgs(shell) {
+  const shellName = shell.split('/').pop().split('\\').pop();
+  
+  // For bash, zsh, sh - use interactive login shell
+  if (shellName === 'bash' || shellName === 'zsh' || shellName === 'sh') {
+    return ['-il']; // interactive login shell
   }
   
-  getShellArgs() {
-    const shellName = this.shell.split('/').pop().split('\\').pop();
-    
-    // For bash, zsh, and sh, use interactive mode
-    if (shellName === 'bash' || shellName === 'zsh' || shellName === 'sh') {
-      return ['-i'];
-    }
-    
-    // For fish, use interactive mode
-    if (shellName === 'fish') {
-      return ['-i'];
-    }
-    
-    // For Windows cmd.exe or PowerShell, no special args needed
-    if (shellName === 'cmd.exe' || shellName === 'powershell.exe' || shellName === 'pwsh.exe') {
-      return [];
-    }
-    
-    // Default: try interactive mode for unknown shells
-    return ['-i'];
+  // For fish
+  if (shellName === 'fish') {
+    return ['-l']; // login shell
   }
-
-  write(data) {
-    if (this.pty) {
-      this.pty.write(data);
-      // Track commands in history
-      if (data.includes('\r') || data.includes('\n')) {
-        this.history.push(data.trim());
-        if (this.history.length > 1000) {
-          this.history.shift();
-        }
-      }
-    }
+  
+  // For Windows shells
+  if (shellName === 'cmd.exe' || shellName === 'powershell.exe' || shellName === 'pwsh.exe') {
+    return [];
   }
-
-  resize(cols, rows) {
-    if (this.pty) {
-      this.cols = cols;
-      this.rows = rows;
-      this.pty.resize(cols, rows);
-    }
-  }
-
-  destroy() {
-    if (this.pty) {
-      try {
-        this.pty.kill();
-      } catch (e) {
-        // PTY might already be dead
-      }
-      this.pty = null;
-    }
-  }
-
-  getInfo() {
-    return {
-      id: this.id,
-      shell: this.shell,
-      cwd: this.cwd,
-      environment: this.env,
-      isRunning: this.pty && !this.pty.killed,
-      cols: this.cols,
-      rows: this.rows
-    };
-  }
+  
+  return [];
 }
 
 function setupTerminalHandlers(ipcMain, getMainWindow) {
   // Create a new terminal
   ipcMain.handle('terminal:create', async (event, options = {}) => {
-    const id = options.id || `terminal_${uuidv4()}`;
-    console.log(`[Terminal Backend] Creating terminal session ${id}`);
-    const session = new TerminalSession(id, options);
+    const id = `terminal_${uuidv4()}`;
+    const shell = options.shell || getDefaultShell();
+    const cwd = options.cwd || process.env.HOME || process.cwd();
+    const cols = options.cols || 80;
+    const rows = options.rows || 24;
     
-    // Store the session
-    terminals.set(id, session);
-    terminalHistory.set(id, []);
+    console.log(`[Terminal] Creating terminal ${id}`);
+    console.log(`[Terminal] Shell: ${shell}`);
+    console.log(`[Terminal] CWD: ${cwd}`);
+    console.log(`[Terminal] Size: ${cols}x${rows}`);
     
-    // Get the main window for sending events
-    const mainWindow = getMainWindow();
-    if (!mainWindow) {
-      console.error('[Terminal Backend] No main window available');
-      throw new Error('Main window not available');
-    }
-    
-    // Store window reference for this terminal
-    terminalWindows.set(id, mainWindow);
-    
-    // Set up data handler
-    session.pty.onData((data) => {
-      // Send data to renderer
-      const dataArray = Array.from(Buffer.from(data));
-      console.log(`[Terminal Backend] Sending data from terminal ${id}:`, dataArray.length, 'bytes');
-      // Log first 100 chars of output for debugging
-      const preview = data.substring(0, 100).replace(/\r/g, '\\r').replace(/\n/g, '\\n');
-      console.log(`[Terminal Backend] Data preview: "${preview}"`);
-      
-      // Get the stored window reference
-      const window = terminalWindows.get(id);
-      if (window && !window.isDestroyed()) {
-        // Ensure web contents are ready
-        if (window.webContents.isLoading()) {
-          console.log(`[Terminal Backend] Window still loading, queuing data`);
-          window.webContents.once('did-finish-load', () => {
-            window.webContents.send('terminal:data', {
-              terminalId: id,
-              data: dataArray
-            });
-            console.log(`[Terminal Backend] Event sent after window loaded`);
-          });
-        } else {
-          console.log(`[Terminal Backend] Sending to webContents immediately`);
-          window.webContents.send('terminal:data', {
-            terminalId: id,
-            data: dataArray
-          });
-          console.log(`[Terminal Backend] Event sent successfully`);
+    try {
+      // Create PTY with proper options
+      const shellArgs = getShellArgs(shell);
+      const ptyProcess = pty.spawn(shell, shellArgs, {
+        name: 'xterm-256color',
+        cols: cols,
+        rows: rows,
+        cwd: cwd,
+        env: {
+          ...process.env,
+          TERM: 'xterm-256color',
+          COLORTERM: 'truecolor',
+          FORCE_COLOR: '1'
         }
-      } else {
-        console.error('[Terminal Backend] Window for terminal is destroyed or null');
+      });
+      
+      console.log(`[Terminal] PTY created with PID: ${ptyProcess.pid}`);
+      
+      // Store terminal session
+      terminals.set(id, {
+        id: id,
+        pty: ptyProcess,
+        shell: shell,
+        cwd: cwd
+      });
+      
+      // Get main window
+      const mainWindow = getMainWindow();
+      if (!mainWindow) {
+        throw new Error('No main window available');
       }
-    });
-    
-    // Set up exit handler
-    session.pty.onExit((exitCode) => {
-      // Get the stored window reference
-      const window = terminalWindows.get(id);
-      if (window && !window.isDestroyed()) {
-        window.webContents.send('terminal:exit', {
-          terminalId: id,
-          exitCode: exitCode.exitCode
-        });
-      }
-      // Clean up
-      terminals.delete(id);
-      terminalHistory.delete(id);
-      terminalWindows.delete(id);
-    });
-    
-    return {
-      id,
-      shell: session.shell,
-      cwd: session.cwd
-    };
+      
+      // Set up data handler
+      ptyProcess.onData((data) => {
+        // Send data to renderer
+        if (!mainWindow.isDestroyed()) {
+          const payload = {
+            terminalId: id,
+            data: Array.from(Buffer.from(data))
+          };
+          console.log(`[Terminal] Sending data to renderer for terminal ${id}: ${data.length} bytes`);
+          mainWindow.webContents.send('terminal:data', payload);
+        }
+      });
+      
+      // Set up exit handler
+      ptyProcess.onExit((exitCode) => {
+        console.log(`[Terminal] Terminal ${id} exited with code:`, exitCode);
+        if (!mainWindow.isDestroyed()) {
+          mainWindow.webContents.send('terminal:exit', {
+            terminalId: id,
+            exitCode: exitCode.exitCode
+          });
+        }
+        terminals.delete(id);
+      });
+      
+      // Send initial commands to verify PTY is working
+      setTimeout(() => {
+        if (ptyProcess) {
+          console.log(`[Terminal] Sending test echo to terminal ${id}`);
+          ptyProcess.write('echo "Terminal Ready"\n');
+        }
+      }, 200);
+      
+      return {
+        id: id,
+        shell: shell,
+        cwd: cwd
+      };
+    } catch (error) {
+      console.error('[Terminal] Failed to create terminal:', error);
+      throw error;
+    }
   });
 
   // Write data to terminal
   ipcMain.handle('terminal:write', async (event, id, data) => {
     const session = terminals.get(id);
     if (!session) {
-      console.error(`[Terminal Backend] Terminal ${id} not found`);
-      throw new Error(`Terminal ${id} not found`);
+      console.error(`[Terminal] Terminal ${id} not found`);
+      return false;
     }
     
-    // Convert array of numbers back to string
-    // Use Buffer for better performance and to handle larger data
-    const buffer = Buffer.from(data);
-    const str = buffer.toString('utf8');
-    console.log(`[Terminal Backend] Writing to terminal ${id}:`, str.length, 'chars');
-    session.write(str);
-    
-    // Track in history
-    const history = terminalHistory.get(id) || [];
-    if (str.includes('\r') || str.includes('\n')) {
-      history.push(str.trim());
-      if (history.length > 100) {
-        history.shift();
-      }
-      terminalHistory.set(id, history);
+    try {
+      // Convert data to string
+      const text = Buffer.from(data).toString('utf8');
+      console.log(`[Terminal] Writing to terminal ${id}: "${text}"`);
+      session.pty.write(text);
+      return true;
+    } catch (error) {
+      console.error(`[Terminal] Failed to write to terminal ${id}:`, error);
+      return false;
     }
-    
-    return true;
   });
 
   // Resize terminal
   ipcMain.handle('terminal:resize', async (event, id, cols, rows) => {
     const session = terminals.get(id);
     if (!session) {
-      throw new Error(`Terminal ${id} not found`);
+      console.error(`[Terminal] Terminal ${id} not found`);
+      return false;
     }
     
-    session.resize(cols, rows);
-    return true;
+    try {
+      console.log(`[Terminal] Resizing terminal ${id} to ${cols}x${rows}`);
+      session.pty.resize(cols, rows);
+      return true;
+    } catch (error) {
+      console.error(`[Terminal] Failed to resize terminal ${id}:`, error);
+      return false;
+    }
   });
 
   // Close terminal
@@ -250,103 +169,44 @@ function setupTerminalHandlers(ipcMain, getMainWindow) {
       return true; // Already closed
     }
     
-    session.destroy();
-    terminals.delete(id);
-    terminalHistory.delete(id);
-    terminalWindows.delete(id);
-    return true;
+    try {
+      console.log(`[Terminal] Closing terminal ${id}`);
+      session.pty.kill();
+      terminals.delete(id);
+      return true;
+    } catch (error) {
+      console.error(`[Terminal] Failed to close terminal ${id}:`, error);
+      terminals.delete(id);
+      return false;
+    }
   });
 
-  // Get terminal session info
+  // Get terminal info
   ipcMain.handle('terminal:getSessionInfo', async (event, id) => {
     const session = terminals.get(id);
     if (!session) {
       throw new Error(`Terminal ${id} not found`);
     }
     
-    return session.getInfo();
+    return {
+      id: session.id,
+      shell: session.shell,
+      cwd: session.cwd,
+      isRunning: session.pty && !session.pty.killed,
+      cols: session.pty.cols,
+      rows: session.pty.rows
+    };
   });
 
-  // Get terminal history
-  ipcMain.handle('terminal:getHistory', async (event, id) => {
-    return terminalHistory.get(id) || [];
-  });
-
-  // Get terminal current working directory
-  ipcMain.handle('terminal:getCwd', async (event, id) => {
-    const session = terminals.get(id);
-    if (!session) {
-      throw new Error(`Terminal ${id} not found`);
-    }
-    
-    // This is a simplified version - in reality, you'd need to
-    // track CWD changes through shell integration
-    return session.cwd;
-  });
-
-  // Test SSH connection
-  ipcMain.handle('terminal:testSSH', async (event, options) => {
-    const { host, port = 22, username, keyPath } = options;
-    
-    // Create a temporary terminal to test SSH
-    const testId = `ssh_test_${uuidv4()}`;
-    const testSession = new TerminalSession(testId, {
-      shell: getDefaultShell()
-    });
-    
-    return new Promise((resolve) => {
-      let output = '';
-      let timeout;
-      
-      testSession.pty.onData((data) => {
-        output += data;
-        
-        // Check for success patterns
-        if (output.includes('Welcome') || output.includes('Last login') || output.includes('$') || output.includes('#')) {
-          clearTimeout(timeout);
-          testSession.destroy();
-          resolve(true);
-        }
-        
-        // Check for failure patterns
-        if (output.includes('Permission denied') || output.includes('Connection refused') || output.includes('No route to host')) {
-          clearTimeout(timeout);
-          testSession.destroy();
-          resolve(false);
-        }
-      });
-      
-      // Build SSH command
-      let sshCommand = `ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no`;
-      if (keyPath) {
-        sshCommand += ` -i "${keyPath}"`;
-      }
-      if (port !== 22) {
-        sshCommand += ` -p ${port}`;
-      }
-      sshCommand += ` ${username}@${host} exit\r`;
-      
-      // Send SSH command
-      testSession.write(sshCommand);
-      
-      // Timeout after 10 seconds
-      timeout = setTimeout(() => {
-        testSession.destroy();
-        resolve(false);
-      }, 10000);
-    });
-  });
-
-  // Clean up terminals on process exit
+  // Clean up on exit
   process.on('exit', () => {
-    // Quick synchronous cleanup
     terminals.forEach((session) => {
       try {
         if (session.pty && !session.pty.killed) {
           session.pty.kill();
         }
       } catch (e) {
-        // Ignore errors during final cleanup
+        // Ignore errors during cleanup
       }
     });
   });

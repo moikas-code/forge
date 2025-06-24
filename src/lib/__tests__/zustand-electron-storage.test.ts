@@ -8,15 +8,15 @@ describe('zustand-electron-storage', () => {
 
   describe('isElectronEnvironment', () => {
     it('should return true when electron API is available', () => {
-      (window as any).electron = { store: {} };
+      (window as any).electronAPI = { store: {} };
       expect(isElectronEnvironment()).toBe(true);
     });
 
     it('should return false when electron API is not available', () => {
-      const originalElectron = (window as any).electron;
-      delete (window as any).electron;
+      const originalElectron = (window as any).electronAPI;
+      delete (window as any).electronAPI;
       expect(isElectronEnvironment()).toBe(false);
-      (window as any).electron = originalElectron;
+      (window as any).electronAPI = originalElectron;
     });
   });
 
@@ -89,7 +89,7 @@ describe('zustand-electron-storage', () => {
 
   describe('getStorage', () => {
     it('should return electron storage when in electron environment', () => {
-      (window as any).electron = { store: {} };
+      (window as any).electronAPI = { store: {} };
       const storage = getStorage();
       
       // Test that it's not localStorage by checking it has async methods
@@ -97,15 +97,15 @@ describe('zustand-electron-storage', () => {
     });
 
     it('should return localStorage wrapper when not in electron environment', () => {
-      const originalElectron = (window as any).electron;
-      delete (window as any).electron;
+      const originalElectron = (window as any).electronAPI;
+      delete (window as any).electronAPI;
       
       const storage = getStorage();
       
       // localStorage wrapper should still return promises
       expect(storage.getItem('test')).toBeInstanceOf(Promise);
       
-      (window as any).electron = originalElectron;
+      (window as any).electronAPI = originalElectron;
     });
   });
 });

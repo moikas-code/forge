@@ -84,12 +84,20 @@ export class TerminalService {
     return this.api.terminal.close(id);
   }
 
-  onData(id: string, callback: (data: Uint8Array) => void): void {
+  onData(id: string, callback: (data: Uint8Array) => void): () => void {
     this.dataListeners.set(id, callback);
+    // Return cleanup function
+    return () => {
+      this.dataListeners.delete(id);
+    };
   }
 
-  onExit(id: string, callback: (exitCode: number) => void): void {
+  onExit(id: string, callback: (exitCode: number) => void): () => void {
     this.exitListeners.set(id, callback);
+    // Return cleanup function
+    return () => {
+      this.exitListeners.delete(id);
+    };
   }
 
   async getSessionInfo(id: string): Promise<TerminalSessionInfo> {

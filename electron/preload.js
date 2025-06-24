@@ -11,17 +11,23 @@ contextBridge.exposeInMainWorld('electronAPI', {
     close: (id) => ipcRenderer.invoke('terminal:close', id),
     onData: (callback) => {
       console.log('[Preload] Setting up terminal:data listener');
-      ipcRenderer.on('terminal:data', (event, data) => {
+      const handler = (event, data) => {
         console.log('[Preload] Received terminal:data event:', data.terminalId, data.data.length, 'bytes');
         callback(data);
-      });
+      };
+      ipcRenderer.on('terminal:data', handler);
+      // Return cleanup function
+      return () => ipcRenderer.removeListener('terminal:data', handler);
     },
     onExit: (callback) => {
       console.log('[Preload] Setting up terminal:exit listener');
-      ipcRenderer.on('terminal:exit', (event, data) => {
+      const handler = (event, data) => {
         console.log('[Preload] Received terminal:exit event:', data);
         callback(data);
-      });
+      };
+      ipcRenderer.on('terminal:exit', handler);
+      // Return cleanup function
+      return () => ipcRenderer.removeListener('terminal:exit', handler);
     },
     getSessionInfo: (id) => ipcRenderer.invoke('terminal:getSessionInfo', id),
     getHistory: (id) => ipcRenderer.invoke('terminal:getHistory', id),
