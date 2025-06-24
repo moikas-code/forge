@@ -20,9 +20,10 @@ interface ElectronBrowserProps {
   url?: string;
   className?: string;
   tabId: string;
+  isActive?: boolean;
 }
 
-export function ElectronBrowser({ url: initialUrl, className, tabId }: ElectronBrowserProps) {
+export function ElectronBrowser({ url: initialUrl, className, tabId, isActive = true }: ElectronBrowserProps) {
   const [url, setUrl] = useState(initialUrl || 'https://www.example.com');
   const [inputUrl, setInputUrl] = useState(initialUrl || 'https://www.example.com');
   const [loading, setLoading] = useState(false);
@@ -47,6 +48,9 @@ export function ElectronBrowser({ url: initialUrl, className, tabId }: ElectronB
   useEffect(() => {
     if (!containerRef.current) return;
 
+    let currentBrowserId: string | null = null;
+    let isMounted = true;
+
     const initBrowser = async () => {
       try {
         // Get container bounds
@@ -60,33 +64,48 @@ export function ElectronBrowser({ url: initialUrl, className, tabId }: ElectronB
             y: Math.round(rect.top),
             width: Math.round(rect.width),
             height: Math.round(rect.height)
-          }
+          },
+          hidden: !isActive // Start hidden if not active
         });
 
-        setBrowserId(browserInfo.id);
+        // Store browser ID for cleanup
+        currentBrowserId = browserInfo.id;
+        
+        // Only update state if component is still mounted
+        if (isMounted) {
+          setBrowserId(browserInfo.id);
 
-        // Set up event listeners
-        browserService.current.onNavigate(browserInfo.id, (newUrl) => {
-          setUrl(newUrl);
-          setInputUrl(newUrl);
-          updateNavigationState(browserInfo.id);
-        });
+          // Set up event listeners
+          browserService.current.onNavigate(browserInfo.id, (newUrl) => {
+            if (isMounted) {
+              setUrl(newUrl);
+              setInputUrl(newUrl);
+              updateNavigationState(browserInfo.id);
+            }
+          });
 
-        browserService.current.onTitleUpdate(browserInfo.id, (newTitle) => {
-          setTitle(newTitle);
-        });
+          browserService.current.onTitleUpdate(browserInfo.id, (newTitle) => {
+            if (isMounted) {
+              setTitle(newTitle);
+            }
+          });
 
-        browserService.current.onLoadStart(browserInfo.id, () => {
-          setLoading(true);
-        });
+          browserService.current.onLoadStart(browserInfo.id, () => {
+            if (isMounted) {
+              setLoading(true);
+            }
+          });
 
-        browserService.current.onLoadStop(browserInfo.id, () => {
-          setLoading(false);
-          updateNavigationState(browserInfo.id);
-        });
+          browserService.current.onLoadStop(browserInfo.id, () => {
+            if (isMounted) {
+              setLoading(false);
+              updateNavigationState(browserInfo.id);
+            }
+          });
 
-        // Update navigation state
-        await updateNavigationState(browserInfo.id);
+          // Update navigation state
+          await updateNavigationState(browserInfo.id);
+        }
       } catch (error) {
         console.error('[ElectronBrowser] Failed to create browser:', error);
       }
@@ -94,10 +113,22 @@ export function ElectronBrowser({ url: initialUrl, className, tabId }: ElectronB
 
     initBrowser();
 
-    // Cleanup
+    // Cleanup function with proper async handling
     return () => {
-      if (browserId) {
-        browserService.current.close(browserId).catch(console.error);
+      isMounted = false;
+      
+      // Clean up browser view immediately if we have the ID
+      if (currentBrowserId) {
+        browserService.current.close(currentBrowserId).catch((error) => {
+          console.error('[ElectronBrowser] Cleanup error:', error);
+        });
+      }
+      
+      // Also clean up via state if available (fallback)
+      if (browserId && browserId !== currentBrowserId) {
+        browserService.current.close(browserId).catch((error) => {
+          console.error('[ElectronBrowser] State cleanup error:', error);
+        });
       }
     };
   }, [tabId]);
@@ -128,6 +159,25 @@ export function ElectronBrowser({ url: initialUrl, className, tabId }: ElectronB
       window.removeEventListener('scroll', updateBounds);
     };
   }, [browserId]);
+
+  // Handle show/hide based on active state
+  useEffect(() => {
+    if (!browserId) return;
+
+    const handleVisibility = async () => {
+      try {
+        if (isActive) {
+          await browserService.current.show(browserId);
+        } else {
+          await browserService.current.hide(browserId);
+        }
+      } catch (error) {
+        console.error('[ElectronBrowser] Visibility error:', error);
+      }
+    };
+
+    handleVisibility();
+  }, [browserId, isActive]);
 
   const updateNavigationState = async (id: string) => {
     const [back, forward] = await Promise.all([

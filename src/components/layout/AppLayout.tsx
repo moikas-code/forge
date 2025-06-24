@@ -6,9 +6,9 @@ import { MinimalSidebar } from './MinimalSidebar';
 import { TabManager } from './TabManager';
 import { useLayoutStore } from '@/stores/layoutStore';
 import { Button } from '@/components/ui/button';
-import { ChevronUp, Menu, X, Terminal } from 'lucide-react';
+import { ChevronUp, Menu, X, Terminal as TerminalIcon } from 'lucide-react';
 import { useResponsive } from '@/hooks/useMediaQuery';
-import { EnhancedTerminal } from '@/components/terminal';
+import { Terminal } from '@/components/terminal';
 import { CodeEditor } from '@/components/editor';
 import { Browser } from '@/components/browser';
 import { FileExplorer } from '@/components/explorer';
@@ -16,6 +16,7 @@ import { TabErrorBoundary } from './TabErrorBoundary';
 import { ComponentErrorBoundary } from './ComponentErrorBoundary';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { useSkipLinks } from '@/hooks/useSkipLinks';
+import { cn } from '@/lib/utils';
 
 export function AppLayout() {
   const { 
@@ -157,36 +158,56 @@ export function AppLayout() {
                 {/* Tab Content Area */}
                 <div className="flex-1 relative">
                   {activeTab ? (
-                    <div className="absolute inset-0 p-4"
-                         role="tabpanel"
-                         id={`tabpanel-${activeTab.id}`}
-                         aria-labelledby={`tabdesc-${activeTab.id}`}>
-                      <TabErrorBoundary tabName={activeTab.title}>
-                        {activeTab.type === 'editor' ? (
-                          <ComponentErrorBoundary componentName="Code Editor">
-                            <CodeEditor 
-                              tabId={activeTab.id}
-                              path={activeTab.path} 
-                              content={activeTab.content} 
-                              className="h-full" 
-                            />
-                          </ComponentErrorBoundary>
-                        ) : activeTab.type === 'browser' ? (
+                    <>
+                    {/* Render all browser tabs for persistent BrowserViews */}
+                    {tabs.filter(tab => tab.type === 'browser').map(tab => (
+                      <div 
+                        key={tab.id}
+                        className={cn(
+                          "absolute inset-0 p-4",
+                          tab.id !== activeTab?.id && "hidden"
+                        )}
+                        role="tabpanel"
+                        id={`tabpanel-${tab.id}`}
+                        aria-labelledby={`tabdesc-${tab.id}`}
+                      >
+                        <TabErrorBoundary tabName={tab.title}>
                           <ComponentErrorBoundary componentName="Browser">
                             <Browser 
-                              url={activeTab.path} 
+                              url={tab.path} 
                               className="h-full"
-                              tabId={activeTab.id}
+                              tabId={tab.id}
+                              isActive={tab.id === activeTab?.id}
                             />
                           </ComponentErrorBoundary>
-                        ) : activeTab.type === 'explorer' ? (
-                          <ComponentErrorBoundary componentName="File Explorer">
-                            <FileExplorer 
-                              tab_id={activeTab.id}
-                            />
-                          </ComponentErrorBoundary>
-                        ) : (
-                          <div className="h-full bg-secondary/20 rounded-lg border border-border/50 flex items-center justify-center"
+                        </TabErrorBoundary>
+                      </div>
+                    ))}
+                    
+                    {/* Render active non-browser tab */}
+                    {activeTab && activeTab.type !== 'browser' && (
+                      <div className="absolute inset-0 p-4"
+                           role="tabpanel"
+                           id={`tabpanel-${activeTab.id}`}
+                           aria-labelledby={`tabdesc-${activeTab.id}`}>
+                        <TabErrorBoundary tabName={activeTab.title}>
+                          {activeTab.type === 'editor' ? (
+                            <ComponentErrorBoundary componentName="Code Editor">
+                              <CodeEditor 
+                                tabId={activeTab.id}
+                                path={activeTab.path} 
+                                content={activeTab.content} 
+                                className="h-full" 
+                              />
+                            </ComponentErrorBoundary>
+                          ) : activeTab.type === 'explorer' ? (
+                            <ComponentErrorBoundary componentName="File Explorer">
+                              <FileExplorer 
+                                tab_id={activeTab.id}
+                              />
+                            </ComponentErrorBoundary>
+                          ) : (
+                            <div className="h-full bg-secondary/20 rounded-lg border border-border/50 flex items-center justify-center"
                                role="status"
                                aria-live="polite">
                             <p className="text-muted-foreground">
@@ -196,6 +217,8 @@ export function AppLayout() {
                         )}
                       </TabErrorBoundary>
                     </div>
+                    )}
+                    </>
                   ) : null}
                 </div>
               </div>
@@ -217,7 +240,7 @@ export function AppLayout() {
                        aria-label="Terminal panel">
                     <div className="flex items-center justify-between px-4 py-2 border-b border-border/50">
                       <div className="flex items-center gap-2">
-                        <Terminal size={14} className="text-muted-foreground" />
+                        <TerminalIcon size={14} className="text-muted-foreground" />
                         <h2 className="text-sm font-medium">Terminal</h2>
                       </div>
                       <Button
@@ -233,7 +256,7 @@ export function AppLayout() {
                     </div>
                     <div className="h-[calc(100%-40px)]">
                       <ComponentErrorBoundary componentName="Terminal" fallbackHeight="100%">
-                        <EnhancedTerminal 
+                        <Terminal 
                           className="h-full" 
                           autoFocus={!isBottomPanelCollapsed}
                         />

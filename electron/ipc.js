@@ -8,25 +8,35 @@ let store;
 let editorSessionsStore;
 
 try {
-  Store = require('electron-store');
-  store = new Store();
-  editorSessionsStore = new Store({ name: 'editor-sessions' });
-  console.log('Electron store initialized successfully');
-} catch (error) {
-  console.error('Failed to initialize electron-store:', error);
-  // Create simple fallback stores
-  store = {
-    get: (key) => null,
-    set: (key, value) => {},
-    delete: (key) => {},
-    clear: () => {}
-  };
-  editorSessionsStore = {
-    get: (key) => null,
-    set: (key, value) => {},
-    store: {}
-  };
-  Store = null;
+  // Try ES6 import style first
+  const { default: ElectronStore } = require('electron-store');
+  Store = ElectronStore;
+  store = new ElectronStore();
+  editorSessionsStore = new ElectronStore({ name: 'editor-sessions' });
+  console.log('Electron store initialized successfully (ES6 style)');
+} catch (e1) {
+  try {
+    // Try CommonJS import style
+    Store = require('electron-store');
+    store = new Store();
+    editorSessionsStore = new Store({ name: 'editor-sessions' });
+    console.log('Electron store initialized successfully (CommonJS style)');
+  } catch (e2) {
+    console.error('Failed to initialize electron-store:', e2);
+    // Create simple fallback stores
+    store = {
+      get: (key) => null,
+      set: (key, value) => {},
+      delete: (key) => {},
+      clear: () => {}
+    };
+    editorSessionsStore = {
+      get: (key) => null,
+      set: (key, value) => {},
+      store: {}
+    };
+    Store = null;
+  }
 }
 
 function setupIPCHandlers(ipcMain) {

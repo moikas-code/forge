@@ -24,6 +24,7 @@ function setupBrowserHandlers(ipcMain, getMainWindow, browserViews) {
 
     // Store the view
     browserViews.set(id, view);
+    console.log(`[Browser] Created browser view ${id}. Total views: ${browserViews.size}`);
 
     // Set up event handlers
     view.webContents.on('did-navigate', (event, url) => {
@@ -145,6 +146,7 @@ function setupBrowserHandlers(ipcMain, getMainWindow, browserViews) {
     
     // Remove from map
     browserViews.delete(id);
+    console.log(`[Browser] Closed browser view ${id}. Total views: ${browserViews.size}`);
     return true;
   });
 
@@ -172,10 +174,21 @@ function setupBrowserHandlers(ipcMain, getMainWindow, browserViews) {
       throw new Error(`Browser view ${id} not found`);
     }
 
-    // Add to window if not already added
-    const views = mainWindow.getBrowserViews();
-    if (!views.includes(view)) {
+    // Hide all other browser views first to prevent overlap
+    const currentViews = mainWindow.getBrowserViews();
+    for (const existingView of currentViews) {
+      // Check if this view belongs to our browser views
+      const existingId = Array.from(browserViews.entries()).find(([_, v]) => v === existingView)?.[0];
+      if (existingId && existingId !== id) {
+        mainWindow.removeBrowserView(existingView);
+        console.log(`[Browser] Hid browser view ${existingId} to show ${id}`);
+      }
+    }
+
+    // Add the target view if not already added
+    if (!currentViews.includes(view)) {
       mainWindow.addBrowserView(view);
+      console.log(`[Browser] Showing browser view ${id}`);
     }
     return true;
   });

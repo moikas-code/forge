@@ -7,10 +7,11 @@ import { isElectron } from '@/services/electron';
 interface BrowserProps {
   url?: string;
   className?: string;
-  tabId?: string;
+  tabId: string;
+  isActive?: boolean;
 }
 
-export function Browser({ url, className, tabId }: BrowserProps) {
+export function Browser({ url, className, tabId, isActive = true }: BrowserProps) {
   // Always use ElectronBrowser since we've migrated to Electron
   // Keep SmartBrowser as fallback for development/testing
   
@@ -19,7 +20,8 @@ export function Browser({ url, className, tabId }: BrowserProps) {
       <ElectronBrowser 
         url={url} 
         className={className} 
-        tabId={tabId} 
+        tabId={tabId}
+        isActive={isActive}
       />
     );
   }
