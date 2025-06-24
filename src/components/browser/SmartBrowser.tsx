@@ -55,14 +55,14 @@ const EMBEDDABLE_PATTERNS = [
 ];
 
 export function SmartBrowser({ url: initialUrl, className }: SmartBrowserProps) {
-  const [url, setUrl] = useState(initialUrl || 'https://developer.mozilla.org');
-  const [inputUrl, setInputUrl] = useState(initialUrl || 'https://developer.mozilla.org');
+  const [url, setUrl] = useState(initialUrl || 'https://moikas.com');
+  const [inputUrl, setInputUrl] = useState(initialUrl || 'https://moikas.com');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [canEmbed, setCanEmbed] = useState(true);
   const [iframeError, setIframeError] = useState(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
-  const [history, setHistory] = useState<string[]>([initialUrl || 'https://developer.mozilla.org']);
+  const [history, setHistory] = useState<string[]>([initialUrl || 'https://moikas.com']);
   const [historyIndex, setHistoryIndex] = useState(0);
   const [hasTriedToLoad, setHasTriedToLoad] = useState(false);
 
@@ -155,7 +155,7 @@ export function SmartBrowser({ url: initialUrl, className }: SmartBrowserProps) 
   };
 
   const handleHome = () => {
-    navigateToUrl('https://developer.mozilla.org');
+    navigateToUrl('https://moikas.com');
   };
 
   const handleOpenExternal = async () => {

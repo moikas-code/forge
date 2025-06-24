@@ -54,7 +54,7 @@ export function AppLayout() {
       addTab({
         title: 'Browser',
         type: 'browser',
-        path: 'https://developer.mozilla.org'
+        path: 'https://moikas.com'
       });
     }
   }, []);
@@ -164,7 +164,7 @@ export function AppLayout() {
                       <div 
                         key={tab.id}
                         className={cn(
-                          "absolute inset-0 p-4",
+                          "absolute inset-0 p-2",
                           tab.id !== activeTab?.id && "hidden"
                         )}
                         role="tabpanel"
@@ -186,7 +186,7 @@ export function AppLayout() {
                     
                     {/* Render active non-browser tab */}
                     {activeTab && activeTab.type !== 'browser' && (
-                      <div className="absolute inset-0 p-4"
+                      <div className="absolute inset-0 p-2"
                            role="tabpanel"
                            id={`tabpanel-${activeTab.id}`}
                            aria-labelledby={`tabdesc-${activeTab.id}`}>
@@ -282,7 +282,7 @@ export function AppLayout() {
             title="Expand terminal panel (Cmd/Ctrl+J)"
           >
             <ChevronUp size={14} className="rotate-180 mr-1" aria-hidden="true" />
-            <Terminal size={14} className="mr-1" aria-hidden="true" />
+            <TerminalIcon size={14} className="mr-1" aria-hidden="true" />
             Terminal
           </Button>
         </div>

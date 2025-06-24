@@ -65,7 +65,7 @@ export const useLayoutStore = create<LayoutState>()(
       sidebarWidth: DEFAULT_SIDEBAR_WIDTH,
       bottomPanelHeight: DEFAULT_BOTTOM_PANEL_HEIGHT,
       isSidebarCollapsed: false,
-      isBottomPanelCollapsed: false,
+      isBottomPanelCollapsed: true,
       isMobileSidebarOpen: false,
       
       setMode: (mode) => set({ mode }),
@@ -171,7 +171,7 @@ export const useLayoutStore = create<LayoutState>()(
         sidebarWidth: DEFAULT_SIDEBAR_WIDTH,
         bottomPanelHeight: DEFAULT_BOTTOM_PANEL_HEIGHT,
         isSidebarCollapsed: false,
-        isBottomPanelCollapsed: false,
+        isBottomPanelCollapsed: true,
         isMobileSidebarOpen: false,
       })),
     }),

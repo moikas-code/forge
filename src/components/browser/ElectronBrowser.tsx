@@ -24,15 +24,29 @@ interface ElectronBrowserProps {
 }
 
 export function ElectronBrowser({ url: initialUrl, className, tabId, isActive = true }: ElectronBrowserProps) {
-  const [url, setUrl] = useState(initialUrl || 'https://www.example.com');
-  const [inputUrl, setInputUrl] = useState(initialUrl || 'https://www.example.com');
+  const [url, setUrl] = useState(initialUrl || 'https://moikas.com');
+  const [inputUrl, setInputUrl] = useState(initialUrl || 'https://moikas.com');
   const [loading, setLoading] = useState(false);
   const [title, setTitle] = useState('New Tab');
   const [canGoBack, setCanGoBack] = useState(false);
   const [canGoForward, setCanGoForward] = useState(false);
   const [browserId, setBrowserId] = useState<string | null>(null);
+  const [serviceError, setServiceError] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const browserService = useRef(getBrowserService());
+  const browserService = useRef<any>(null);
+
+  // Initialize browser service safely
+  useEffect(() => {
+    try {
+      browserService.current = getBrowserService();
+      if (!browserService.current) {
+        setServiceError('Browser service not available');
+      }
+    } catch (error) {
+      console.error('Failed to get browser service:', error);
+      setServiceError('Failed to initialize browser service');
+    }
+  }, []);
 
   const normalizeUrl = (urlString: string): string => {
     if (!/^https?:\/\//i.test(urlString)) {
@@ -46,7 +60,7 @@ export function ElectronBrowser({ url: initialUrl, className, tabId, isActive = 
 
   // Create and position BrowserView
   useEffect(() => {
-    if (!containerRef.current) return;
+    if (!containerRef.current || !browserService.current) return;
 
     let currentBrowserId: string | null = null;
     let isMounted = true;
@@ -118,14 +132,14 @@ export function ElectronBrowser({ url: initialUrl, className, tabId, isActive = 
       isMounted = false;
       
       // Clean up browser view immediately if we have the ID
-      if (currentBrowserId) {
+      if (currentBrowserId && browserService.current) {
         browserService.current.close(currentBrowserId).catch((error) => {
           console.error('[ElectronBrowser] Cleanup error:', error);
         });
       }
       
       // Also clean up via state if available (fallback)
-      if (browserId && browserId !== currentBrowserId) {
+      if (browserId && browserId !== currentBrowserId && browserService.current) {
         browserService.current.close(browserId).catch((error) => {
           console.error('[ElectronBrowser] State cleanup error:', error);
         });
@@ -138,6 +152,7 @@ export function ElectronBrowser({ url: initialUrl, className, tabId, isActive = 
     if (!browserId || !containerRef.current) return;
 
     const updateBounds = async () => {
+      if (!browserService.current) return;
       const rect = containerRef.current!.getBoundingClientRect();
       await browserService.current.setBounds(browserId, {
         x: Math.round(rect.left),
@@ -166,10 +181,12 @@ export function ElectronBrowser({ url: initialUrl, className, tabId, isActive = 
 
     const handleVisibility = async () => {
       try {
-        if (isActive) {
-          await browserService.current.show(browserId);
-        } else {
-          await browserService.current.hide(browserId);
+        if (browserService.current) {
+          if (isActive) {
+            await browserService.current.show(browserId);
+          } else {
+            await browserService.current.hide(browserId);
+          }
         }
       } catch (error) {
         console.error('[ElectronBrowser] Visibility error:', error);
@@ -180,6 +197,7 @@ export function ElectronBrowser({ url: initialUrl, className, tabId, isActive = 
   }, [browserId, isActive]);
 
   const updateNavigationState = async (id: string) => {
+    if (!browserService.current) return;
     const [back, forward] = await Promise.all([
       browserService.current.canGoBack(id),
       browserService.current.canGoForward(id)
@@ -189,7 +207,7 @@ export function ElectronBrowser({ url: initialUrl, className, tabId, isActive = 
   };
 
   const navigateToUrl = async (newUrl: string) => {
-    if (!browserId) return;
+    if (!browserId || !browserService.current) return;
     
     const normalizedUrl = normalizeUrl(newUrl);
     setUrl(normalizedUrl);
@@ -203,22 +221,22 @@ export function ElectronBrowser({ url: initialUrl, className, tabId, isActive = 
   };
 
   const handleBack = async () => {
-    if (!browserId || !canGoBack) return;
+    if (!browserId || !canGoBack || !browserService.current) return;
     await browserService.current.goBack(browserId);
   };
 
   const handleForward = async () => {
-    if (!browserId || !canGoForward) return;
+    if (!browserId || !canGoForward || !browserService.current) return;
     await browserService.current.goForward(browserId);
   };
 
   const handleRefresh = async () => {
-    if (!browserId) return;
+    if (!browserId || !browserService.current) return;
     await browserService.current.refresh(browserId);
   };
 
   const handleHome = () => {
-    navigateToUrl('https://www.example.com');
+    navigateToUrl('https://moikas.com');
   };
 
   const handleOpenExternal = async () => {
@@ -227,7 +245,7 @@ export function ElectronBrowser({ url: initialUrl, className, tabId, isActive = 
   };
 
   const handleToggleDevTools = async () => {
-    if (!browserId) return;
+    if (!browserId || !browserService.current) return;
     
     // Simple toggle - in real app, track state
     try {
@@ -236,6 +254,22 @@ export function ElectronBrowser({ url: initialUrl, className, tabId, isActive = 
       await browserService.current.closeDevTools(browserId);
     }
   };
+
+  // Show error state if browser service is not available
+  if (serviceError) {
+    return (
+      <div className={cn("h-full flex flex-col items-center justify-center bg-cyber-black", className)}>
+        <div className="text-center p-8">
+          <Globe className="h-12 w-12 text-cyber-gray-500 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-cyber-gray-300 mb-2">Browser Service Unavailable</h3>
+          <p className="text-sm text-cyber-gray-500 mb-4">{serviceError}</p>
+          <p className="text-xs text-cyber-gray-600">
+            The browser feature requires Electron environment.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={cn("h-full flex flex-col bg-cyber-black", className)}>
